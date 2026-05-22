@@ -67,7 +67,8 @@ model-generated CAD artifacts to the same viewer.
 
 ## CAD-Code Runs and Review
 
-For the wall-planter pilot, `configs/pilot_local.yaml` uses
+For the wall-planter study,
+`projects/wall-planter-cad-study/configs/family_sweep.yaml` uses
 `output_mode: cadquery`. The runner wraps each seed prompt with a CadQuery code
 instruction prompt, sends that to Ollama, extracts the returned Python code,
 and stores each attempt in its own artifact folder under the numbered run
@@ -141,10 +142,11 @@ The pull state is stored in `workspace/model_queue_state.json`. If the machine
 crashes mid-download, restart the command or the lab; Ollama will reuse cached
 layers where it can, and already-installed models are skipped.
 
-The lab defaults to `configs/pilot_local.yaml`, a local 500-generation wall
-planter family sweep: ten installed models across Qwen 2.5, Qwen 2.5 Coder,
-and Llama 3.2; ten seed prompts; one identity strategy; and five repetitions.
-Each click of `Start Real Run` creates a numbered folder such as
+The lab defaults to `projects/wall-planter-cad-study/`, specifically the
+500-generation wall planter family sweep config: ten installed models across
+Qwen 2.5, Qwen 2.5 Coder, and Llama 3.2; ten seed prompts; one identity
+strategy; and five repetitions. Each click of `Start Real Run` creates a
+numbered folder such as
 `workspace/runs/wall_planter_family_sweep_001/` with `results.jsonl`,
 `config.yaml`, and generated CAD artifacts. Select `Real run` in the lab before
 starting real Ollama generations.
@@ -152,7 +154,8 @@ starting real Ollama generations.
 ## Dedicated Worker Machine
 
 For large sweeps, run this repo on a spare always-on computer instead of your
-daily machine. See `WORKER_QUICKSTART.md` for the exact dumb-runner workflow:
+daily machine. See `WORKER_QUICKSTART.md` and
+`projects/wall-planter-cad-study/README.md` for the exact dumb-runner workflow:
 clone, setup, pull models, start the lab on `0.0.0.0`, run the sweep, review
 products, and publish findings back to GitHub.
 

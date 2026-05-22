@@ -1,5 +1,5 @@
 param(
-    [string]$ConfigPath = "configs/pilot_local.yaml",
+    [string]$ConfigPath = "projects/wall-planter-cad-study/configs/family_sweep.yaml",
     [bool]$PullModels = $true,
     [bool]$RunTests = $true
 )

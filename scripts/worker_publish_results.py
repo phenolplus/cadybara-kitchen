@@ -57,7 +57,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Copy workspace findings into results/ and push a results-only branch.",
     )
-    parser.add_argument("--config", default="configs/pilot_local.yaml")
+    parser.add_argument("--config", default="projects/wall-planter-cad-study/configs/family_sweep.yaml")
     parser.add_argument("--remote", default="origin")
     parser.add_argument("--branch-prefix", default="results")
     parser.add_argument("--no-push", action="store_true")

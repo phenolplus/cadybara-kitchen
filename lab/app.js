@@ -1,4 +1,4 @@
-const DEFAULT_CONFIG = "configs/pilot_local.yaml";
+const DEFAULT_CONFIG = "projects/wall-planter-cad-study/configs/family_sweep.yaml";
 
 const configInput = document.querySelector("#config-path");
 const ollamaState = document.querySelector("#ollama-state");

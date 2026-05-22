@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-CONFIG_PATH="${CONFIG_PATH:-configs/pilot_local.yaml}"
+CONFIG_PATH="${CONFIG_PATH:-projects/wall-planter-cad-study/configs/family_sweep.yaml}"
 PULL_MODELS="${PULL_MODELS:-1}"
 RUN_TESTS="${RUN_TESTS:-1}"
 

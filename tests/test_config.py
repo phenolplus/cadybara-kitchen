@@ -17,7 +17,7 @@ def test_valid_yaml_loads(tiny_config_path: Path) -> None:
 
 
 def test_pilot_local_config_loads() -> None:
-    config = load_config("configs/pilot_local.yaml")
+    config = load_config("projects/wall-planter-cad-study/configs/family_sweep.yaml")
     assert config.experiment_id == "wall_planter_family_sweep"
     assert config.output_mode == "cadquery"
     assert len(config.models) == 10

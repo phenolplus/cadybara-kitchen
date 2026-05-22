@@ -1,0 +1,112 @@
+experiment_id: "wall_planter_family_sweep"
+output_path: "workspace/runs/wall_planter_family_sweep_manual/results.jsonl"
+output_mode: "cadquery"
+artifact_root: "workspace/runs/wall_planter_family_sweep_manual/artifacts"
+models:
+  - name: "qwen2.5:0.5b"
+    provider: "ollama"
+    base_url: "http://localhost:11434"
+  - name: "qwen2.5:1.5b"
+    provider: "ollama"
+    base_url: "http://localhost:11434"
+  - name: "qwen2.5:3b"
+    provider: "ollama"
+    base_url: "http://localhost:11434"
+  - name: "qwen2.5:7b"
+    provider: "ollama"
+    base_url: "http://localhost:11434"
+  - name: "qwen2.5-coder:0.5b"
+    provider: "ollama"
+    base_url: "http://localhost:11434"
+  - name: "qwen2.5-coder:1.5b"
+    provider: "ollama"
+    base_url: "http://localhost:11434"
+  - name: "qwen2.5-coder:3b"
+    provider: "ollama"
+    base_url: "http://localhost:11434"
+  - name: "qwen2.5-coder:7b"
+    provider: "ollama"
+    base_url: "http://localhost:11434"
+  - name: "llama3.2:1b"
+    provider: "ollama"
+    base_url: "http://localhost:11434"
+  - name: "llama3.2:3b"
+    provider: "ollama"
+    base_url: "http://localhost:11434"
+seeds:
+  - id: "planter_001_minimal"
+    text: "Make me a planter I can put on my wall."
+    metadata:
+      domain: "cad"
+      object: "wall_planter"
+      prompt_level: 1
+      detail: "minimal"
+  - id: "planter_002_basic_form"
+    text: "Design a wall-mounted planter that holds a small potted plant."
+    metadata:
+      domain: "cad"
+      object: "wall_planter"
+      prompt_level: 2
+      detail: "basic_form_intent"
+  - id: "planter_003_mounting"
+    text: "Design a wall-mounted planter that holds a small potted plant and can be hung on a nail or screw in drywall."
+    metadata:
+      domain: "cad"
+      object: "wall_planter"
+      prompt_level: 3
+      detail: "mounting_concept"
+  - id: "planter_004_size"
+    text: "Design a wall-mounted planter about the size of a coffee mug, that holds a small potted plant and can be hung on a nail or screw in drywall."
+    metadata:
+      domain: "cad"
+      object: "wall_planter"
+      prompt_level: 4
+      detail: "rough_size"
+  - id: "planter_005_shape"
+    text: "Design a cylindrical wall-mounted planter about the size of a coffee mug, open at the top, that holds a small potted plant and hangs flat against the wall on a single screw."
+    metadata:
+      domain: "cad"
+      object: "wall_planter"
+      prompt_level: 5
+      detail: "shape_and_orientation"
+  - id: "planter_006_dimensions"
+    text: "Design a cylindrical wall-mounted planter roughly 90 mm tall and 80 mm in diameter, open at the top, with a flat back that hangs against the wall using a single screw through a mounting hole."
+    metadata:
+      domain: "cad"
+      object: "wall_planter"
+      prompt_level: 6
+      detail: "approximate_dimensions"
+  - id: "planter_007_printable"
+    text: "Design a cylindrical 3D-printable wall-mounted planter, 90 mm tall and 80 mm outer diameter, with a 3 mm wall thickness, an open top, and a flat back panel containing one mounting hole sized for a #8 screw."
+    metadata:
+      domain: "cad"
+      object: "wall_planter"
+      prompt_level: 7
+      detail: "wall_thickness_material_context"
+  - id: "planter_008_features"
+    text: "Design a cylindrical 3D-printable wall-mounted planter, 90 mm tall and 80 mm outer diameter, with a 3 mm wall thickness, an open top, a flat back panel, one keyhole-shaped mounting slot for a #8 screw centered on the back panel, and four 3 mm drainage holes in the bottom."
+    metadata:
+      domain: "cad"
+      object: "wall_planter"
+      prompt_level: 8
+      detail: "drainage_and_functional_features"
+  - id: "planter_009_placement"
+    text: "Design a cylindrical 3D-printable wall-mounted planter. Outer diameter 80 mm, height 90 mm, wall thickness 3 mm. The back is a flat panel tangent to the cylinder, 100 mm tall x 90 mm wide, extending 5 mm above the cylinder top. Centered on the upper portion of the back panel, 15 mm from its top edge, is a keyhole-shaped mounting slot (8 mm circle on top, 4 mm wide x 10 mm tall slot below) sized for a #8 screw. The bottom of the cylinder has four 3 mm drainage holes arranged in a square pattern, each 15 mm from the central axis."
+    metadata:
+      domain: "cad"
+      object: "wall_planter"
+      prompt_level: 9
+      detail: "geometric_feature_placement"
+  - id: "planter_010_full_spec"
+    text: "Design a 3D-printable wall-mounted planter with the following specifications. The body is a hollow cylinder, 80 mm outer diameter, 90 mm tall, with a uniform 3 mm wall thickness, open at the top and closed at the bottom. The bottom of the cylinder contains four 3 mm diameter drainage holes arranged in a square pattern, each centered 15 mm from the cylinder's central axis. The back is a flat rectangular panel, 100 mm tall x 90 mm wide x 4 mm thick, tangent to the outside of the cylinder along a vertical line, and extending 5 mm above the cylinder's top edge and 5 mm below its bottom edge. The back panel contains one keyhole-shaped mounting slot centered horizontally, with its top edge 15 mm below the top of the back panel: an 8 mm diameter circular opening with a 4 mm wide x 10 mm tall rectangular slot extending downward from the circle's center, sized to accept a #8 pan-head screw. All external edges except the open top rim have a 1 mm fillet. The model is a single watertight solid suitable for FDM 3D printing without supports when oriented with the back panel flat on the print bed."
+    metadata:
+      domain: "cad"
+      object: "wall_planter"
+      prompt_level: 10
+      detail: "fully_specified"
+strategies:
+  - name: "identity"
+sampling:
+  temperatures: [0.7]
+  repetitions: 5
+  max_tokens: 2048

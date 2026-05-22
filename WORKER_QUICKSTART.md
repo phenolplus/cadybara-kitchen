@@ -7,7 +7,7 @@ save CAD products, and push findings back to GitHub without changing source code
 
 Input:
 
-- YAML config, usually `configs/pilot_local.yaml`
+- YAML config, usually `projects/wall-planter-cad-study/configs/family_sweep.yaml`
 - Local Ollama models
 - The prompt ladder in the config
 
@@ -86,13 +86,13 @@ without losing completed rows.
 If you do not need the UI:
 
 ```powershell
-.\.venv\Scripts\cadybara.exe run configs/pilot_local.yaml
+.\.venv\Scripts\cadybara.exe run projects/wall-planter-cad-study/configs/family_sweep.yaml
 ```
 
 or:
 
 ```bash
-.venv/bin/cadybara run configs/pilot_local.yaml
+.venv/bin/cadybara run projects/wall-planter-cad-study/configs/family_sweep.yaml
 ```
 
 The CLI resumes from the JSONL if interrupted.
@@ -102,13 +102,13 @@ The CLI resumes from the JSONL if interrupted.
 After the run, publish the results snapshot:
 
 ```powershell
-.\.venv\Scripts\python.exe scripts/worker_publish_results.py --config configs/pilot_local.yaml
+.\.venv\Scripts\python.exe scripts/worker_publish_results.py --config projects/wall-planter-cad-study/configs/family_sweep.yaml
 ```
 
 or:
 
 ```bash
-.venv/bin/python scripts/worker_publish_results.py --config configs/pilot_local.yaml
+.venv/bin/python scripts/worker_publish_results.py --config projects/wall-planter-cad-study/configs/family_sweep.yaml
 ```
 
 The script refuses to publish if tracked source files are modified. It stages
@@ -122,7 +122,7 @@ safest options are GitHub Desktop, Git Credential Manager, or `gh auth login`.
 Use this if you want to inspect the commit before pushing:
 
 ```powershell
-.\.venv\Scripts\python.exe scripts/worker_publish_results.py --config configs/pilot_local.yaml --no-push
+.\.venv\Scripts\python.exe scripts/worker_publish_results.py --config projects/wall-planter-cad-study/configs/family_sweep.yaml --no-push
 ```
 
 ## If Something Looks Wrong

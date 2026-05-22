@@ -25,6 +25,8 @@ from cadybara.model_queue import (
 from cadybara.reviews import append_score, review_items, review_path
 from cadybara.runner import read_jsonl_records, run_config, run_config_path
 
+DEFAULT_PROJECT_CONFIG = "projects/wall-planter-cad-study/configs/family_sweep.yaml"
+
 
 class JobLog:
     def __init__(self, name: str) -> None:
@@ -290,7 +292,7 @@ def make_handler(state: LabState):
                 self.path = "/lab/index.html"
                 return super().do_GET()
             if parsed.path == "/api/status":
-                config_path = Path(parse_qs(parsed.query).get("config", ["configs/pilot_local.yaml"])[0])
+                config_path = Path(parse_qs(parsed.query).get("config", [DEFAULT_PROJECT_CONFIG])[0])
                 display_config = state.display_config(config_path)
                 queue = load_model_queue(DEFAULT_MODEL_QUEUE_PATH)
                 self._json(
@@ -312,7 +314,7 @@ def make_handler(state: LabState):
                 return
             if parsed.path == "/api/results":
                 query = parse_qs(parsed.query)
-                config_path = Path(query.get("config", ["configs/pilot_local.yaml"])[0])
+                config_path = Path(query.get("config", [DEFAULT_PROJECT_CONFIG])[0])
                 display_config = state.display_config(config_path)
                 dry_run = bool_query(query.get("dry_run", ["true"])[0], default=True)
                 limit = int(query.get("limit", ["20"])[0])
@@ -320,7 +322,7 @@ def make_handler(state: LabState):
                 return
             if parsed.path == "/api/review":
                 query = parse_qs(parsed.query)
-                config_path = Path(query.get("config", ["configs/pilot_local.yaml"])[0])
+                config_path = Path(query.get("config", [DEFAULT_PROJECT_CONFIG])[0])
                 self._json(review_payload(state.display_config(config_path)))
                 return
             return super().do_GET()
@@ -339,7 +341,7 @@ def make_handler(state: LabState):
                 return
             if self.path == "/api/run/start":
                 started = state.start_run(
-                    config_path=payload.get("config_path", "configs/pilot_local.yaml"),
+                    config_path=payload.get("config_path", DEFAULT_PROJECT_CONFIG),
                     dry_run=bool(payload.get("dry_run", False)),
                 )
                 self._json({"started": started}, status=202 if started else 409)
@@ -349,7 +351,7 @@ def make_handler(state: LabState):
                 self._json({"stop_requested": stopped}, status=202 if stopped else 409)
                 return
             if self.path == "/api/review/score":
-                config = load_config(payload.get("config_path", "configs/pilot_local.yaml"))
+                config = load_config(payload.get("config_path", DEFAULT_PROJECT_CONFIG))
                 saved = append_score(
                     review_path(config.experiment_id),
                     run_id=str(payload["run_id"]),
