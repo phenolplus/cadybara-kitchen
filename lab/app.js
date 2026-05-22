@@ -34,6 +34,7 @@ const nextReview = document.querySelector("#next-review");
 const reviewCode = document.querySelector("#review-code");
 const codeStatus = document.querySelector("#code-status");
 let latestExperiment = null;
+let latestReviewPayload = null;
 let reviewItems = [];
 let reviewIndex = 0;
 
@@ -71,6 +72,7 @@ function setRunMode(nextDryRun) {
   startRun.textContent = dryRun ? "Start Practice Run" : "Start Real Run";
   startRun.classList.toggle("real", !dryRun);
   renderExperimentProgress();
+  refreshReviewSummary();
   refreshResults();
   updateStartState();
 }
@@ -198,9 +200,68 @@ function renderResults(results) {
   }
 }
 
+function renderResultsV2(results) {
+  if (!resultsSummary || !resultsList) return;
+  resultsList.innerHTML = "";
+  if (results.config_error) {
+    resultsSummary.textContent = "Config error";
+    const empty = document.createElement("p");
+    empty.className = "empty-results";
+    empty.textContent = results.config_error;
+    resultsList.appendChild(empty);
+    return;
+  }
+
+  const renderableCount = latestReviewPayload?.renderable_rows ?? 0;
+  const failedCount = latestReviewPayload?.render_failed_rows ?? 0;
+  resultsSummary.textContent = `${results.valid_rows} ${dryRun ? "practice" : "real"} row${
+    results.valid_rows === 1 ? "" : "s"
+  } - ${renderableCount} products ready, ${failedCount} code failures`;
+  if (reviewProducts) {
+    reviewProducts.disabled = dryRun || renderableCount === 0;
+    reviewProducts.textContent = renderableCount > 0 ? `Review Products (${renderableCount})` : "No Products Yet";
+  }
+  if (results.rows.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "empty-results";
+    empty.textContent = dryRun
+      ? "No practice outputs saved yet."
+      : "No real outputs saved yet.";
+    resultsList.appendChild(empty);
+    return;
+  }
+
+  for (const row of results.rows) {
+    const item = document.createElement("details");
+    item.className = row.error || row.render_error ? "result-item error" : "result-item";
+    const summary = document.createElement("summary");
+    const title = document.createElement("span");
+    title.textContent = `#${row.sequence} / ${row.provider} / ${row.model_name} / ${row.seed_id} / t=${row.temperature} / rep ${row.repetition}`;
+    const meta = document.createElement("span");
+    if (row.error) {
+      meta.textContent = "provider error";
+    } else if (row.is_renderable) {
+      meta.textContent = `STL ready - ${row.latency_ms} ms`;
+    } else if (row.render_error) {
+      meta.textContent = `code failed - ${row.latency_ms} ms`;
+    } else {
+      meta.textContent = `${row.latency_ms} ms`;
+    }
+    summary.append(title, meta);
+    const prompt = document.createElement("p");
+    prompt.className = "result-prompt";
+    prompt.textContent = row.seed_text;
+    const output = document.createElement("pre");
+    output.textContent = row.error || row.output;
+    item.append(summary, prompt, output);
+    resultsList.appendChild(item);
+  }
+}
+
 async function loadReviewItems() {
   const payload = await fetch(reviewUrl()).then((response) => response.json());
-  reviewItems = (payload.items || []).filter((item) => item.error === null);
+  latestReviewPayload = payload;
+  reviewItems = (payload.items || []).filter((item) => item.is_renderable === true);
   reviewIndex = Math.min(reviewIndex, Math.max(reviewItems.length - 1, 0));
   return payload;
 }
@@ -264,14 +325,18 @@ async function renderReview() {
 }
 
 async function openReview() {
-  await loadReviewItems();
+  const payload = await loadReviewItems();
   reviewPanel.classList.remove("hidden");
   if (reviewItems.length === 0) {
     reviewTitle.textContent = "No products ready yet";
-    reviewSubtitle.textContent = "Run CAD generation first.";
+    reviewSubtitle.textContent =
+      payload.valid_rows > 0
+        ? `${payload.render_failed_rows || 0} rows produced CAD code that did not render yet. The code is still saved in the run folder.`
+        : "Run CAD generation first.";
     reviewPosition.textContent = "0 / 0";
     reviewMeta.textContent = "";
     scoreButtons.innerHTML = "";
+    reviewFrame.removeAttribute("src");
     reviewCode.textContent = "";
     return;
   }
@@ -301,7 +366,7 @@ async function refreshResults() {
   if (!resultsSummary || !resultsList) return;
   try {
     const results = await fetch(resultsUrl()).then((response) => response.json());
-    renderResults(results);
+    renderResultsV2(results);
   } catch (error) {
     resultsSummary.textContent = "Unavailable";
     resultsList.innerHTML = "";
@@ -309,6 +374,22 @@ async function refreshResults() {
     empty.className = "empty-results";
     empty.textContent = String(error);
     resultsList.appendChild(empty);
+  }
+}
+
+async function refreshReviewSummary() {
+  if (dryRun || !reviewProducts) {
+    latestReviewPayload = null;
+    if (reviewProducts) {
+      reviewProducts.disabled = true;
+      reviewProducts.textContent = "Review Products";
+    }
+    return;
+  }
+  try {
+    latestReviewPayload = await fetch(reviewUrl()).then((response) => response.json());
+  } catch {
+    latestReviewPayload = null;
   }
 }
 
@@ -334,6 +415,7 @@ async function refresh() {
   renderModels(data.models);
   renderLog(runLog, data.jobs.run);
   renderLog(modelLog, data.jobs.models);
+  await refreshReviewSummary();
   await refreshResults();
   updateStartState();
 }

@@ -62,6 +62,13 @@ def review_items(output_path: Path, *, experiment_id: str) -> dict[str, Any]:
         "output_path": str(output_path),
         "valid_rows": len(rows.records),
         "malformed_rows": rows.malformed_count,
+        "provider_error_rows": sum(1 for item in items if item["error"] is not None),
+        "renderable_rows": sum(1 for item in items if item["is_renderable"]),
+        "render_failed_rows": sum(
+            1
+            for item in items
+            if item["error"] is None and item["output_mode"] == "cadquery" and not item["is_renderable"]
+        ),
         "reviewed_rows": sum(1 for item in items if item["review"] is not None),
         "items": items,
     }
@@ -89,6 +96,7 @@ def record_to_review_item(record: RunRecord) -> dict[str, Any]:
         "error": record.error,
         "render_error": record.render_error,
         "artifacts": artifacts,
+        "is_renderable": stl_path is not None and record.error is None and record.render_error is None,
         "viewer_url": f"/viewer/?stl=/{stl_path}" if stl_path else None,
         "code_url": f"/{code_path}" if code_path else None,
     }

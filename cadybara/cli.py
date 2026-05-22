@@ -5,10 +5,12 @@ from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import quote
+from uuid import uuid4
 
 import typer
 
 from cadybara.artifacts import sample_mounting_plate, write_part_scene
+from cadybara.cadquery_runner import sample_wall_planter_code, write_cadquery_artifacts
 from cadybara.lab_server import serve_lab
 from cadybara.model_queue import (
     DEFAULT_MODEL_QUEUE_PATH,
@@ -22,9 +24,12 @@ from cadybara.model_queue import (
 from cadybara.runner import (
     ConfigMismatchError,
     MalformedJsonlError,
+    append_record,
     read_jsonl_records,
     run_config_path,
+    timestamp_utc,
 )
+from cadybara.records import RunRecord
 from cadybara.training import export_training_pairs
 
 app = typer.Typer(help="Run and inspect cadybara prompt-sensitivity experiments.")
@@ -93,6 +98,76 @@ def sample_part(
 ) -> None:
     path = write_part_scene(sample_mounting_plate(), output_path)
     typer.echo(f"Wrote sample part artifact: {path}")
+
+
+def next_available_dir(base_dir: Path) -> Path:
+    if not base_dir.exists():
+        return base_dir
+    index = 2
+    while base_dir.with_name(f"{base_dir.name}_{index:03d}").exists():
+        index += 1
+    return base_dir.with_name(f"{base_dir.name}_{index:03d}")
+
+
+@app.command("cad-smoke")
+def cad_smoke(
+    output_dir: Path = typer.Argument(Path("workspace/runs/cad_smoke_001")),
+    host: str = typer.Option("127.0.0.1", "--host"),
+    port: int = typer.Option(8787, "--port", min=1, max=65535),
+) -> None:
+    run_dir = next_available_dir(output_dir)
+    jsonl_path = run_dir / "results.jsonl"
+    artifact_root = run_dir / "artifacts"
+    code = sample_wall_planter_code()
+    record = RunRecord(
+        run_id=str(uuid4()),
+        experiment_id=run_dir.name,
+        timestamp_utc=timestamp_utc(),
+        model_name="cadquery-smoke-fixture",
+        provider="local_fixture",
+        seed_id="smoke_wall_planter",
+        seed_text="Known-good wall planter fixture used to test CAD export and viewer plumbing.",
+        strategy="fixture",
+        variant_id="sample-wall-planter",
+        variant_text="Known-good wall planter fixture used to test CAD export and viewer plumbing.",
+        variant_metadata={"source": "cad-smoke"},
+        prompt_sent="Local deterministic CadQuery smoke fixture.",
+        output_mode="cadquery",
+        condition_name="cadquery-smoke-fixture|smoke_wall_planter|fixture|t=0|r=0",
+        sampling={"temperature": 0, "seed": 0, "max_tokens": 0},
+        repetition=0,
+        output=code,
+        latency_ms=0,
+        prompt_tokens=None,
+        completion_tokens=None,
+        finish_reason="fixture",
+        total_duration_ms=0,
+        load_duration_ms=0,
+        prompt_eval_duration_ms=0,
+        eval_duration_ms=0,
+        provider_seed=None,
+        scores={"output_length": float(len(code))},
+        artifacts={},
+        render_error=None,
+        error=None,
+        config_hash="cad-smoke-fixture",
+    )
+    artifacts, render_error = write_cadquery_artifacts(
+        record=record,
+        prompt_sent=record.prompt_sent or "",
+        artifact_root=artifact_root,
+    )
+    record = record.model_copy(update={"artifacts": artifacts, "render_error": render_error})
+    jsonl_path.parent.mkdir(parents=True, exist_ok=True)
+    with jsonl_path.open("a", encoding="utf-8") as handle:
+        append_record(handle, record)
+    stl_path = artifacts.get("stl")
+    typer.echo(f"Wrote smoke JSONL: {jsonl_path}")
+    typer.echo(f"Wrote smoke STL: {stl_path}")
+    if render_error:
+        typer.echo(f"Render failed: {render_error}", err=True)
+        raise typer.Exit(code=1)
+    typer.echo(f"Open viewer: http://{host}:{port}/viewer/?stl=/{quote(str(stl_path).replace(chr(92), '/'))}")
 
 
 @app.command()

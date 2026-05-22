@@ -19,9 +19,21 @@ Hard requirements:
 - Use `import cadquery as cq`.
 - Define the final model in a variable named `result`.
 - `result` must be a CadQuery Workplane or Shape.
+- Do not call `cq.exporters.export`; the harness exports STL and STEP after your code runs.
 - Do not read files, write files, use networking, shell commands, subprocesses, or external packages.
+- Do not use CadQuery string selectors such as `.vertices("[1:-1]")`; use explicit Workplanes and cuts.
 - Prefer simple, printable, watertight solids using boxes, cylinders, holes, cuts, unions, fillets, and chamfers.
 - Keep the model as a single 3D-printable object when the request asks for one.
+- If fillets fail on complex geometry, omit them instead of making invalid code.
+
+Use this style:
+import cadquery as cq
+
+outer = cq.Workplane("XY").circle(40).extrude(90)
+inner = cq.Workplane("XY").workplane(offset=3).circle(37).extrude(88)
+body = outer.cut(inner)
+back = cq.Workplane("XY").box(90, 4, 100).translate((0, 42, 50))
+result = body.union(back)
 
 Design request:
 {design_prompt}
@@ -44,6 +56,7 @@ DISALLOWED_PATTERNS = (
     "from sys",
     "exec(",
     "eval(",
+    "exporters.export",
     "__",
     "os.",
     "sys.",
@@ -52,6 +65,27 @@ DISALLOWED_PATTERNS = (
 
 def cadquery_prompt(design_prompt: str) -> str:
     return CADQUERY_PROMPT_TEMPLATE.format(design_prompt=design_prompt)
+
+
+def sample_wall_planter_code() -> str:
+    return """import cadquery as cq
+
+outer = cq.Workplane("XY").circle(40).extrude(90)
+inner = cq.Workplane("XY").workplane(offset=3).circle(37).extrude(88)
+body = outer.cut(inner)
+
+back = cq.Workplane("XY").box(90, 4, 100).translate((0, 42, 50))
+result = body.union(back)
+
+for x in (-15, 15):
+    for y in (-15, 15):
+        cutter = cq.Workplane("XY").center(x, y).circle(1.5).extrude(6)
+        result = result.cut(cutter)
+
+key_round = cq.Workplane("XZ", origin=(0, 44, 82)).circle(4).extrude(8)
+key_slot = cq.Workplane("XZ", origin=(0, 44, 72)).rect(4, 20).extrude(8)
+result = result.cut(key_round).cut(key_slot)
+"""
 
 
 def extract_code(output: str) -> str:

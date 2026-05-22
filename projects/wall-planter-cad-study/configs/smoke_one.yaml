@@ -1,0 +1,22 @@
+experiment_id: "wall_planter_coder_smoke"
+output_path: "workspace/runs/wall_planter_coder_smoke_manual/results.jsonl"
+output_mode: "cadquery"
+artifact_root: "workspace/runs/wall_planter_coder_smoke_manual/artifacts"
+models:
+  - name: "qwen2.5-coder:7b"
+    provider: "ollama"
+    base_url: "http://localhost:11434"
+seeds:
+  - id: "planter_010_full_spec"
+    text: "Design a 3D-printable wall-mounted planter with the following specifications. The body is a hollow cylinder, 80 mm outer diameter, 90 mm tall, with a uniform 3 mm wall thickness, open at the top and closed at the bottom. The bottom of the cylinder contains four 3 mm diameter drainage holes arranged in a square pattern, each centered 15 mm from the cylinder's central axis. The back is a flat rectangular panel, 100 mm tall x 90 mm wide x 4 mm thick, tangent to the outside of the cylinder along a vertical line, and extending 5 mm above the cylinder's top edge and 5 mm below its bottom edge. The back panel contains one keyhole-shaped mounting slot centered horizontally, with its top edge 15 mm below the top of the back panel: an 8 mm diameter circular opening with a 4 mm wide x 10 mm tall rectangular slot extending downward from the circle's center, sized to accept a #8 pan-head screw. All external edges except the open top rim have a 1 mm fillet. The model is a single watertight solid suitable for FDM 3D printing without supports when oriented with the back panel flat on the print bed."
+    metadata:
+      domain: "cad"
+      object: "wall_planter"
+      prompt_level: 10
+      detail: "fully_specified"
+strategies:
+  - name: "identity"
+sampling:
+  temperatures: [0.7]
+  repetitions: 1
+  max_tokens: 2048

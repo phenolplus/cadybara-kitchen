@@ -14,7 +14,7 @@ def _duration_ms(value: int | float | None) -> int | None:
 
 
 class OllamaProvider(ModelProvider):
-    def __init__(self, *, model_name: str, base_url: str, timeout: float = 120.0) -> None:
+    def __init__(self, *, model_name: str, base_url: str, timeout: float = 600.0) -> None:
         self.model_name = model_name
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout

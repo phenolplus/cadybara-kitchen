@@ -168,6 +168,18 @@ def assign_numbered_run_config(config: ExperimentConfig, *, create: bool = True)
     root = Path("workspace") / "runs"
     root.mkdir(parents=True, exist_ok=True)
     index = 1
+    if not create:
+        existing = sorted(root.glob(f"{base_id}_[0-9][0-9][0-9]"))
+        if existing:
+            run_id = existing[-1].name
+            run_dir = existing[-1]
+            return config.model_copy(
+                update={
+                    "experiment_id": run_id,
+                    "output_path": str(run_dir / "results.jsonl"),
+                    "artifact_root": str(run_dir / "artifacts"),
+                }
+            )
     while (root / f"{base_id}_{index:03d}").exists():
         index += 1
     run_id = f"{base_id}_{index:03d}"
@@ -260,6 +272,12 @@ def saved_outputs(config: ExperimentConfig, *, dry_run: bool, limit: int = 20) -
                 "temperature": record.sampling.get("temperature"),
                 "latency_ms": record.latency_ms,
                 "error": record.error,
+                "render_error": record.render_error,
+                "is_renderable": bool(
+                    (record.artifacts or {}).get("stl")
+                    and record.error is None
+                    and record.render_error is None
+                ),
                 "output": record.output,
             }
             for index, record in selected
@@ -351,7 +369,7 @@ def make_handler(state: LabState):
                 self._json({"stop_requested": stopped}, status=202 if stopped else 409)
                 return
             if self.path == "/api/review/score":
-                config = load_config(payload.get("config_path", DEFAULT_PROJECT_CONFIG))
+                config = state.display_config(Path(payload.get("config_path", DEFAULT_PROJECT_CONFIG)))
                 saved = append_score(
                     review_path(config.experiment_id),
                     run_id=str(payload["run_id"]),
