@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import threading
 from collections import deque
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -8,6 +9,9 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
+import yaml
+
+from cadybara.config import ExperimentConfig
 from cadybara.config import load_config
 from cadybara.model_queue import (
     DEFAULT_MODEL_QUEUE_PATH,
@@ -60,6 +64,7 @@ class LabState:
         self.model_thread: threading.Thread | None = None
         self.run_thread: threading.Thread | None = None
         self.stop_event = threading.Event()
+        self.active_run_config: ExperimentConfig | None = None
         self.lock = threading.Lock()
 
     def start_models(self, *, limit: int | None = None, family: str | None = None) -> bool:
@@ -99,21 +104,25 @@ class LabState:
                 return False
             self.run_job = JobLog("experiment-run")
             self.stop_event.clear()
+            assigned_config = assign_numbered_run_config(load_config(config_path))
+            self.active_run_config = assigned_config
+            write_assigned_config(assigned_config)
 
             def target() -> None:
                 self.run_job.set_status("running")
                 try:
                     if dry_run:
-                        config = load_config(config_path)
                         run_config(
-                            config.model_copy(update={"output_path": practice_output_path(config.output_path)}),
+                            assigned_config.model_copy(
+                                update={"output_path": practice_output_path(assigned_config.output_path)}
+                            ),
                             dry_run=True,
                             should_stop=self.stop_event.is_set,
                             stream=self.run_job,
                         )
                     else:
-                        run_config_path(
-                            config_path,
+                        run_config(
+                            assigned_config,
                             dry_run=False,
                             should_stop=self.stop_event.is_set,
                             stream=self.run_job,
@@ -136,10 +145,49 @@ class LabState:
             self.run_job.set_status("stopping")
             return True
 
+    def display_config(self, config_path: Path) -> ExperimentConfig:
+        with self.lock:
+            if self.active_run_config is not None:
+                return self.active_run_config
+        return assign_numbered_run_config(load_config(config_path), create=False)
+
 
 def practice_output_path(output_path: str) -> str:
     path = Path(output_path)
     return str(path.with_name(f"{path.stem}.practice{path.suffix}"))
+
+
+def base_experiment_id(experiment_id: str) -> str:
+    return re.sub(r"_\d{3}$", "", experiment_id)
+
+
+def assign_numbered_run_config(config: ExperimentConfig, *, create: bool = True) -> ExperimentConfig:
+    base_id = base_experiment_id(config.experiment_id)
+    root = Path("workspace") / "runs"
+    root.mkdir(parents=True, exist_ok=True)
+    index = 1
+    while (root / f"{base_id}_{index:03d}").exists():
+        index += 1
+    run_id = f"{base_id}_{index:03d}"
+    run_dir = root / run_id
+    if create:
+        run_dir.mkdir(parents=True, exist_ok=True)
+    return config.model_copy(
+        update={
+            "experiment_id": run_id,
+            "output_path": str(run_dir / "results.jsonl"),
+            "artifact_root": str(run_dir / "artifacts"),
+        }
+    )
+
+
+def write_assigned_config(config: ExperimentConfig) -> None:
+    config_path = Path(config.output_path).parent / "config.yaml"
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    config_path.write_text(
+        yaml.safe_dump(config.model_dump(mode="json"), sort_keys=False),
+        encoding="utf-8",
+    )
 
 
 def progress_for_path(path: str, total: int) -> dict[str, Any]:
@@ -152,9 +200,9 @@ def progress_for_path(path: str, total: int) -> dict[str, Any]:
     }
 
 
-def experiment_progress(config_path: Path) -> dict[str, Any]:
+def experiment_progress(config_path: Path, *, config: ExperimentConfig | None = None) -> dict[str, Any]:
     try:
-        config = load_config(config_path)
+        config = config or load_config(config_path)
     except Exception as exc:  # noqa: BLE001
         return {"config_error": str(exc)}
     total = (
@@ -166,6 +214,7 @@ def experiment_progress(config_path: Path) -> dict[str, Any]:
     )
     return {
         "config_path": str(config_path),
+        "assigned_config_path": str(Path(config.output_path).parent / "config.yaml"),
         "experiment_id": config.experiment_id,
         "output_path": config.output_path,
         "model_count": len(config.models),
@@ -187,15 +236,10 @@ def bool_query(value: str | None, *, default: bool) -> bool:
     return value.lower() in {"1", "true", "yes", "on"}
 
 
-def saved_outputs(config_path: Path, *, dry_run: bool, limit: int = 20) -> dict[str, Any]:
-    try:
-        config = load_config(config_path)
-    except Exception as exc:  # noqa: BLE001
-        return {"config_error": str(exc)}
-
+def saved_outputs(config: ExperimentConfig, *, dry_run: bool, limit: int = 20) -> dict[str, Any]:
     path = Path(practice_output_path(config.output_path) if dry_run else config.output_path)
     rows = read_jsonl_records(path)
-    selected = rows.records[-limit:]
+    selected = list(enumerate(rows.records, start=1))[-limit:]
     selected.reverse()
     return {
         "output_path": str(path),
@@ -203,6 +247,7 @@ def saved_outputs(config_path: Path, *, dry_run: bool, limit: int = 20) -> dict[
         "malformed_rows": rows.malformed_count,
         "rows": [
             {
+                "sequence": index,
                 "run_id": record.run_id,
                 "timestamp_utc": record.timestamp_utc,
                 "model_name": record.model_name,
@@ -215,16 +260,12 @@ def saved_outputs(config_path: Path, *, dry_run: bool, limit: int = 20) -> dict[
                 "error": record.error,
                 "output": record.output,
             }
-            for record in selected
+            for index, record in selected
         ],
     }
 
 
-def review_payload(config_path: Path) -> dict[str, Any]:
-    try:
-        config = load_config(config_path)
-    except Exception as exc:  # noqa: BLE001
-        return {"config_error": str(exc)}
+def review_payload(config: ExperimentConfig) -> dict[str, Any]:
     return review_items(Path(config.output_path), experiment_id=config.experiment_id)
 
 
@@ -250,6 +291,7 @@ def make_handler(state: LabState):
                 return super().do_GET()
             if parsed.path == "/api/status":
                 config_path = Path(parse_qs(parsed.query).get("config", ["configs/pilot_local.yaml"])[0])
+                display_config = state.display_config(config_path)
                 queue = load_model_queue(DEFAULT_MODEL_QUEUE_PATH)
                 self._json(
                     {
@@ -263,7 +305,7 @@ def make_handler(state: LabState):
                             "models": state.model_job.snapshot(),
                             "run": state.run_job.snapshot(),
                         },
-                        "experiment": experiment_progress(config_path),
+                        "experiment": experiment_progress(config_path, config=display_config),
                         "viewer_url": "/viewer/?artifact=/workspace/sample_part.json",
                     }
                 )
@@ -271,14 +313,15 @@ def make_handler(state: LabState):
             if parsed.path == "/api/results":
                 query = parse_qs(parsed.query)
                 config_path = Path(query.get("config", ["configs/pilot_local.yaml"])[0])
+                display_config = state.display_config(config_path)
                 dry_run = bool_query(query.get("dry_run", ["true"])[0], default=True)
                 limit = int(query.get("limit", ["20"])[0])
-                self._json(saved_outputs(config_path, dry_run=dry_run, limit=limit))
+                self._json(saved_outputs(display_config, dry_run=dry_run, limit=limit))
                 return
             if parsed.path == "/api/review":
                 query = parse_qs(parsed.query)
                 config_path = Path(query.get("config", ["configs/pilot_local.yaml"])[0])
-                self._json(review_payload(config_path))
+                self._json(review_payload(state.display_config(config_path)))
                 return
             return super().do_GET()
 

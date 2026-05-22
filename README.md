@@ -70,8 +70,9 @@ model-generated CAD artifacts to the same viewer.
 For the wall-planter pilot, `configs/pilot_local.yaml` uses
 `output_mode: cadquery`. The runner wraps each seed prompt with a CadQuery code
 instruction prompt, sends that to Ollama, extracts the returned Python code,
-and stores each attempt in its own artifact folder under
-`workspace/artifacts/wall_planter_pilot_001/`.
+and stores each attempt in its own artifact folder under the numbered run
+directory, for example
+`workspace/runs/wall_planter_family_sweep_001/artifacts/`.
 
 Each folder keeps the full prompt sent to the model, the original seed prompt,
 the raw model output, extracted `model.py`, metadata, and, when rendering
@@ -140,12 +141,13 @@ The pull state is stored in `workspace/model_queue_state.json`. If the machine
 crashes mid-download, restart the command or the lab; Ollama will reuse cached
 layers where it can, and already-installed models are skipped.
 
-The lab defaults to `configs/pilot_local.yaml`, a local 90-generation wall
-planter pilot: three installed models, ten seed prompts, one identity strategy,
-and three repetitions. The real run is stored permanently at
-`workspace/wall_planter_pilot_001.jsonl`; practice runs go to
-`workspace/wall_planter_pilot_001.practice.jsonl`. Select `Real run` in the lab
-before starting real Ollama generations.
+The lab defaults to `configs/pilot_local.yaml`, a local 500-generation wall
+planter family sweep: ten installed models across Qwen 2.5, Qwen 2.5 Coder,
+and Llama 3.2; ten seed prompts; one identity strategy; and five repetitions.
+Each click of `Start Real Run` creates a numbered folder such as
+`workspace/runs/wall_planter_family_sweep_001/` with `results.jsonl`,
+`config.yaml`, and generated CAD artifacts. Select `Real run` in the lab before
+starting real Ollama generations.
 
 ## Dedicated Worker Machine
 

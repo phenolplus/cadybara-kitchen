@@ -21,7 +21,7 @@ Output:
 Publish:
 
 - Copies findings into `results/<experiment>/<timestamp_machine>/`
-- Creates a new Git branch named like `results/wall_planter_pilot_001/<machine>-<timestamp>`
+- Creates a new Git branch named like `results/wall_planter_family_sweep_001/<machine>-<timestamp>`
 - Commits only that result snapshot
 - Pushes that branch to GitHub
 
@@ -133,7 +133,7 @@ Check the worker state:
 git remote -v
 git status --short
 .\.venv\Scripts\cadybara.exe model-status
-.\.venv\Scripts\cadybara.exe inspect workspace/wall_planter_pilot_001.jsonl
+.\.venv\Scripts\cadybara.exe inspect workspace/runs/wall_planter_family_sweep_001/results.jsonl
 ```
 
 The expected remote is:

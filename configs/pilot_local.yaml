@@ -1,15 +1,36 @@
-experiment_id: "wall_planter_pilot_001"
-output_path: "workspace/wall_planter_pilot_001.jsonl"
+experiment_id: "wall_planter_family_sweep"
+output_path: "workspace/runs/wall_planter_family_sweep_manual/results.jsonl"
 output_mode: "cadquery"
-artifact_root: "workspace/artifacts/wall_planter_pilot_001"
+artifact_root: "workspace/runs/wall_planter_family_sweep_manual/artifacts"
 models:
   - name: "qwen2.5:0.5b"
+    provider: "ollama"
+    base_url: "http://localhost:11434"
+  - name: "qwen2.5:1.5b"
     provider: "ollama"
     base_url: "http://localhost:11434"
   - name: "qwen2.5:3b"
     provider: "ollama"
     base_url: "http://localhost:11434"
+  - name: "qwen2.5:7b"
+    provider: "ollama"
+    base_url: "http://localhost:11434"
+  - name: "qwen2.5-coder:0.5b"
+    provider: "ollama"
+    base_url: "http://localhost:11434"
+  - name: "qwen2.5-coder:1.5b"
+    provider: "ollama"
+    base_url: "http://localhost:11434"
+  - name: "qwen2.5-coder:3b"
+    provider: "ollama"
+    base_url: "http://localhost:11434"
   - name: "qwen2.5-coder:7b"
+    provider: "ollama"
+    base_url: "http://localhost:11434"
+  - name: "llama3.2:1b"
+    provider: "ollama"
+    base_url: "http://localhost:11434"
+  - name: "llama3.2:3b"
     provider: "ollama"
     base_url: "http://localhost:11434"
 seeds:
@@ -87,5 +108,5 @@ strategies:
   - name: "identity"
 sampling:
   temperatures: [0.7]
-  repetitions: 3
+  repetitions: 5
   max_tokens: 2048

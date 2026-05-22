@@ -18,10 +18,11 @@ def test_valid_yaml_loads(tiny_config_path: Path) -> None:
 
 def test_pilot_local_config_loads() -> None:
     config = load_config("configs/pilot_local.yaml")
-    assert config.experiment_id == "wall_planter_pilot_001"
+    assert config.experiment_id == "wall_planter_family_sweep"
     assert config.output_mode == "cadquery"
-    assert len(config.models) == 3
+    assert len(config.models) == 10
     assert len(config.seeds) == 10
+    assert config.sampling.repetitions == 5
     assert config.seeds[0].text == "Make me a planter I can put on my wall."
 
 

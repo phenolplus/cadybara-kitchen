@@ -165,7 +165,7 @@ function renderResults(results) {
 
   resultsSummary.textContent = `${results.valid_rows} ${dryRun ? "practice" : "real"} row${
     results.valid_rows === 1 ? "" : "s"
-  }`;
+  } · newest first`;
   if (reviewProducts) {
     reviewProducts.disabled = dryRun || results.valid_rows === 0;
   }
@@ -184,7 +184,7 @@ function renderResults(results) {
     item.className = row.error ? "result-item error" : "result-item";
     const summary = document.createElement("summary");
     const title = document.createElement("span");
-    title.textContent = `${row.provider} / ${row.model_name} / ${row.seed_id} / t=${row.temperature} / rep ${row.repetition}`;
+    title.textContent = `#${row.sequence} / ${row.provider} / ${row.model_name} / ${row.seed_id} / t=${row.temperature} / rep ${row.repetition}`;
     const meta = document.createElement("span");
     meta.textContent = row.error ? "error" : `${row.latency_ms} ms`;
     summary.append(title, meta);

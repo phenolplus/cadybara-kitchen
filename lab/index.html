@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>cadybara Lab</title>
-    <link rel="stylesheet" href="./styles.css?v=cadstop1" />
+    <link rel="stylesheet" href="./styles.css?v=family1" />
   </head>
   <body>
     <main>
@@ -53,7 +53,7 @@
             <p class="eyebrow">Step 2</p>
             <h2 id="run-title">Run the planter pilot</h2>
             <p id="run-explain" class="muted">Uses the 10 wall-planter prompts.</p>
-            <p class="prompt-note">Pilot: 10 seed prompts. Paper-scale later: 50-100 seed prompts.</p>
+            <p class="prompt-note">Family sweep: prompt detail level x model family/size x repetition.</p>
             <div class="run-buttons">
               <button id="start-run" class="start-button real" type="button">Start Real Run</button>
               <button id="stop-run" class="stop-button" type="button" disabled>Stop After Current</button>
@@ -64,7 +64,7 @@
                 <span id="progress-percent">0%</span>
               </div>
               <div class="progress-bar"><div id="progress-fill"></div></div>
-              <p id="output-path" class="muted">workspace/wall_planter_pilot_001.jsonl</p>
+              <p id="output-path" class="muted">workspace/runs/wall_planter_family_sweep_001/results.jsonl</p>
             </div>
           </div>
         </div>
@@ -74,7 +74,7 @@
         <div class="panel-head">
           <div>
             <p class="eyebrow">Stored JSONL</p>
-            <h2>Saved outputs</h2>
+            <h2>Recent saved outputs</h2>
           </div>
           <div class="panel-actions">
             <span id="results-summary">Checking</span>
@@ -150,6 +150,6 @@
         </div>
       </details>
     </main>
-    <script type="module" src="./app.js?v=cadstop1"></script>
+    <script type="module" src="./app.js?v=family1"></script>
   </body>
 </html>
