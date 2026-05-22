@@ -1,0 +1,89 @@
+:root {
+  color-scheme: dark;
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  overflow: hidden;
+  background: #101512;
+  color: #eef4ef;
+}
+
+#scene {
+  display: block;
+  width: 100vw;
+  height: 100vh;
+}
+
+.hud,
+.status {
+  position: fixed;
+  left: 16px;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  pointer-events: none;
+}
+
+.hud {
+  top: 14px;
+}
+
+.hud > div {
+  min-width: 0;
+  max-width: calc(100% - 104px);
+}
+
+.status {
+  bottom: 14px;
+  justify-content: flex-start;
+  color: #c9d8cc;
+  font-size: 13px;
+}
+
+#part-name {
+  display: block;
+  font-size: 15px;
+  letter-spacing: 0;
+}
+
+#part-meta {
+  display: block;
+  color: #b7c5b9;
+  font-size: 12px;
+  margin-top: 2px;
+  overflow-wrap: anywhere;
+}
+
+.file-button {
+  pointer-events: auto;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid rgba(238, 244, 239, 0.24);
+  background: rgba(16, 21, 18, 0.7);
+  color: #eef4ef;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.file-button input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+}

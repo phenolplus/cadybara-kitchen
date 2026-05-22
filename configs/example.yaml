@@ -1,0 +1,17 @@
+experiment_id: "smoke_test_001"
+output_path: "workspace/smoke_test_001.jsonl"
+models:
+  - name: "qwen2.5:0.5b"
+    provider: "ollama"
+    base_url: "http://localhost:11434"
+seeds:
+  - id: "seed_001"
+    text: "Create four equally spaced holes in a 100x50 mm plate."
+    metadata:
+      domain: "cad"
+strategies:
+  - name: "identity"
+sampling:
+  temperatures: [0.7]
+  repetitions: 3
+  max_tokens: 512

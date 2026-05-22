@@ -1,0 +1,180 @@
+from __future__ import annotations
+
+import json
+import math
+import re
+import traceback
+from pathlib import Path
+from typing import Any
+
+from cadybara.records import RunRecord
+
+
+CADQUERY_PROMPT_TEMPLATE = """You are generating parametric CAD source code.
+
+Return only Python CadQuery code. Do not explain the design in prose.
+
+Hard requirements:
+- Use millimeters.
+- Use `import cadquery as cq`.
+- Define the final model in a variable named `result`.
+- `result` must be a CadQuery Workplane or Shape.
+- Do not read files, write files, use networking, shell commands, subprocesses, or external packages.
+- Prefer simple, printable, watertight solids using boxes, cylinders, holes, cuts, unions, fillets, and chamfers.
+- Keep the model as a single 3D-printable object when the request asks for one.
+
+Design request:
+{design_prompt}
+"""
+
+
+BLOCK_RE = re.compile(r"```(?:python|py)?\s*(.*?)```", re.IGNORECASE | re.DOTALL)
+DISALLOWED_PATTERNS = (
+    "subprocess",
+    "socket",
+    "requests",
+    "httpx",
+    "urllib",
+    "shutil",
+    "pathlib",
+    "open(",
+    "import os",
+    "from os",
+    "import sys",
+    "from sys",
+    "exec(",
+    "eval(",
+    "__",
+    "os.",
+    "sys.",
+)
+
+
+def cadquery_prompt(design_prompt: str) -> str:
+    return CADQUERY_PROMPT_TEMPLATE.format(design_prompt=design_prompt)
+
+
+def extract_code(output: str) -> str:
+    match = BLOCK_RE.search(output)
+    if match:
+        return match.group(1).strip() + "\n"
+    return output.strip() + "\n"
+
+
+def safe_slug(value: str, *, max_length: int = 80) -> str:
+    cleaned = re.sub(r"[^A-Za-z0-9_.-]+", "_", value).strip("._")
+    return (cleaned or "item")[:max_length]
+
+
+def run_artifact_dir(root: Path, record: RunRecord) -> Path:
+    condition = record.condition_name or f"{record.seed_id}_r{record.repetition}"
+    return (
+        root
+        / safe_slug(record.model_name)
+        / safe_slug(record.seed_id)
+        / safe_slug(condition)
+        / safe_slug(record.run_id[:8])
+    )
+
+
+def check_code_safety(code: str) -> None:
+    lowered = code.lower()
+    for pattern in DISALLOWED_PATTERNS:
+        if pattern in lowered:
+            raise ValueError(f"CAD code contains disallowed pattern: {pattern}")
+
+
+def export_cadquery_code(code: str, stl_path: Path, step_path: Path) -> None:
+    check_code_safety(code)
+    import cadquery as cq  # noqa: PLC0415 - optional heavy CAD dependency.
+
+    namespace: dict[str, Any] = {
+        "cq": cq,
+        "math": math,
+        "__builtins__": {
+            "__import__": __import__,
+            "abs": abs,
+            "bool": bool,
+            "dict": dict,
+            "enumerate": enumerate,
+            "float": float,
+            "int": int,
+            "len": len,
+            "list": list,
+            "max": max,
+            "min": min,
+            "range": range,
+            "round": round,
+            "set": set,
+            "sum": sum,
+            "tuple": tuple,
+        },
+    }
+    exec(compile(code, "<cadquery-generated>", "exec"), namespace)  # noqa: S102
+    result = namespace.get("result")
+    if result is None:
+        raise ValueError("CAD code did not define a `result` variable.")
+    stl_path.parent.mkdir(parents=True, exist_ok=True)
+    cq.exporters.export(result, str(stl_path))
+    cq.exporters.export(result, str(step_path))
+
+
+def write_cadquery_artifacts(
+    *,
+    record: RunRecord,
+    prompt_sent: str,
+    artifact_root: Path,
+) -> tuple[dict[str, Any], str | None]:
+    folder = run_artifact_dir(artifact_root, record)
+    folder.mkdir(parents=True, exist_ok=True)
+    code = extract_code(record.output)
+    paths = {
+        "folder": folder,
+        "prompt": folder / "prompt_sent.txt",
+        "seed_prompt": folder / "seed_prompt.txt",
+        "model_output": folder / "model_output.md",
+        "cadquery_code": folder / "model.py",
+        "metadata": folder / "metadata.json",
+        "stl": folder / "model.stl",
+        "step": folder / "model.step",
+        "render_error": folder / "render_error.txt",
+    }
+
+    paths["prompt"].write_text(prompt_sent, encoding="utf-8")
+    paths["seed_prompt"].write_text(record.seed_text, encoding="utf-8")
+    paths["model_output"].write_text(record.output, encoding="utf-8")
+    paths["cadquery_code"].write_text(code, encoding="utf-8")
+
+    render_error: str | None = None
+    try:
+        export_cadquery_code(code, paths["stl"], paths["step"])
+        if paths["render_error"].exists():
+            paths["render_error"].unlink()
+    except Exception as exc:  # noqa: BLE001 - stored for review instead of aborting sweep.
+        render_error = f"{exc}\n{traceback.format_exc()}"
+        paths["render_error"].write_text(render_error, encoding="utf-8")
+
+    metadata = {
+        "run_id": record.run_id,
+        "experiment_id": record.experiment_id,
+        "model_name": record.model_name,
+        "provider": record.provider,
+        "seed_id": record.seed_id,
+        "strategy": record.strategy,
+        "variant_id": record.variant_id,
+        "sampling": record.sampling,
+        "repetition": record.repetition,
+        "timestamp_utc": record.timestamp_utc,
+        "condition_name": record.condition_name,
+        "render_error": render_error,
+    }
+    paths["metadata"].write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
+
+    artifacts = {
+        name: path.as_posix()
+        for name, path in paths.items()
+        if name != "render_error" and (name != "step" or path.exists()) and (name != "stl" or path.exists())
+    }
+    if render_error:
+        artifacts["render_error"] = paths["render_error"].as_posix()
+    return artifacts, render_error
