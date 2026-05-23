@@ -15,6 +15,7 @@ class RunRecord(BaseModel):
     provider: str
     seed_id: str
     seed_text: str
+    seed_metadata: dict[str, Any] = {}
     strategy: str
     variant_id: str
     variant_text: str
@@ -22,6 +23,7 @@ class RunRecord(BaseModel):
     prompt_sent: str | None = None
     output_mode: str = "text"
     condition_name: str | None = None
+    attempt: int = 1
     sampling: dict[str, Any]
     repetition: int
     output: str

@@ -1,7 +1,7 @@
-experiment_id: "wall_planter_fast_smoke"
-output_path: "workspace/runs/wall_planter_fast_smoke_manual/results.jsonl"
+experiment_id: "wall_planter_fast_retry_smoke"
+output_path: "workspace/runs/wall_planter_fast_retry_smoke_manual/results.jsonl"
 output_mode: "cadquery"
-artifact_root: "workspace/runs/wall_planter_fast_smoke_manual/artifacts"
+artifact_root: "workspace/runs/wall_planter_fast_retry_smoke_manual/artifacts"
 models:
   - name: "qwen2.5-coder:0.5b"
     provider: "ollama"
@@ -20,3 +20,4 @@ sampling:
   temperatures: [0.7]
   repetitions: 1
   max_tokens: 768
+  max_attempts_per_cell: 3

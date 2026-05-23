@@ -34,6 +34,12 @@ Current design:
 10 prompts x 10 models x 5 repetitions x 1 temperature = 500 generations
 ```
 
+Each generation condition can make up to 10 attempts. Bad CadQuery code is not
+treated as a finished product; each failed attempt is saved, then the same
+model/prompt/temperature/repetition is tried again until an STL renders or the
+attempt cap is reached. This makes attempts-to-product available as a measured
+outcome in the final spreadsheet.
+
 Each run creates a numbered folder:
 
 ```text
@@ -92,6 +98,12 @@ Scores append to:
 
 ```text
 workspace/reviews/<experiment_id>_reviews.jsonl
+```
+
+Export the large attempt table to CSV:
+
+```powershell
+cadybara export-csv workspace/runs/wall_planter_family_sweep_001/results.jsonl workspace/wall_planter_attempts.csv
 ```
 
 ## Worker Computer

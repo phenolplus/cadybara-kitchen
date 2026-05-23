@@ -37,6 +37,7 @@ class SamplingConfig(BaseModel):
     temperatures: list[float]
     repetitions: int = Field(gt=0)
     max_tokens: int = Field(gt=0)
+    max_attempts_per_cell: int = Field(default=1, gt=0)
 
 
 class ExperimentConfig(BaseModel):

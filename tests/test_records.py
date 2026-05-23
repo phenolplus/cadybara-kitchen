@@ -15,6 +15,7 @@ def record_payload() -> dict:
         "provider": "ollama",
         "seed_id": "seed",
         "seed_text": "Seed text",
+        "seed_metadata": {"prompt_level": 1},
         "strategy": "identity",
         "variant_id": "variant",
         "variant_text": "Seed text",
@@ -43,6 +44,7 @@ def test_run_record_round_trips_json() -> None:
     assert parsed == record
     assert parsed.total_duration_ms == 10
     assert parsed.config_hash == "abc123"
+    assert parsed.seed_metadata == {"prompt_level": 1}
 
 
 def test_run_record_required_fields_enforced() -> None:

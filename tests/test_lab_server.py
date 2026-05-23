@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from cadybara.config import load_config
-from cadybara.lab_server import assign_run_config_for_start
+from cadybara.lab_server import assign_run_config_for_start, write_assigned_config
 from cadybara.runner import run_config
 
 
@@ -42,6 +42,11 @@ sampling:
     first = assign_run_config_for_start(config, dry_run=False)
     assert first.resuming is False
     assert first.config.experiment_id == "overnight_001"
+    write_assigned_config(first.config)
+
+    empty_reuse = assign_run_config_for_start(config, dry_run=False)
+    assert empty_reuse.resuming is False
+    assert empty_reuse.config.output_path == first.config.output_path
 
     partial = run_config(first.config, dry_run=True, limit=3)
     assert partial.executed == 3

@@ -5,6 +5,10 @@ from abc import ABC, abstractmethod
 from pydantic import BaseModel, ConfigDict
 
 
+class GenerationStopped(RuntimeError):
+    """Raised when the user requests a stop during a generation."""
+
+
 class ProviderResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 

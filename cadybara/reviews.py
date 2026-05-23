@@ -89,6 +89,7 @@ def record_to_review_item(record: RunRecord) -> dict[str, Any]:
         "condition_name": record.condition_name,
         "temperature": record.sampling.get("temperature"),
         "repetition": record.repetition,
+        "attempt": record.attempt,
         "output_mode": record.output_mode,
         "latency_ms": record.latency_ms,
         "prompt_tokens": record.prompt_tokens,

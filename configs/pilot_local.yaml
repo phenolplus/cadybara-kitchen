@@ -110,3 +110,4 @@ sampling:
   temperatures: [0.7]
   repetitions: 5
   max_tokens: 2048
+  max_attempts_per_cell: 10

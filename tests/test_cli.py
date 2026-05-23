@@ -54,6 +54,12 @@ sampling:
     assert training_result.exit_code == 0, training_result.output
     assert "Wrote 1 training row" in training_result.output
 
+    csv_path = tmp_path / "results.csv"
+    csv_result = runner.invoke(app, ["export-csv", str(output_path), str(csv_path)])
+    assert csv_result.exit_code == 0, csv_result.output
+    assert "Wrote 1 row" in csv_result.output
+    assert "attempt" in csv_path.read_text(encoding="utf-8")
+
     status_result = runner.invoke(app, ["model-status", "configs/models_local.yaml"])
     assert status_result.exit_code == 0, status_result.output
     assert "qwen2.5:0.5b" in status_result.output

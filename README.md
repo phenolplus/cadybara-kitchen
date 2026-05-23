@@ -99,6 +99,12 @@ cadybara run projects/wall-planter-cad-study/configs/smoke_fast.yaml --limit 1
 saves the model's CadQuery code, and exports an STL/STEP product when the code
 renders. Re-running the same smoke command should print `SKIP (already done)`.
 
+For CAD runs, a condition is complete only when it produces an STL product.
+If the model writes bad CadQuery code, the failed attempt stays in JSONL and
+the runner tries the same model/prompt/temperature/repetition again until
+`sampling.max_attempts_per_cell` is reached. The attempt number is stored on
+every row, so the analysis spreadsheet can measure attempts-to-product.
+
 While a run is active, use `Stop After Current` to pause the queue after the
 current Ollama generation finishes. Already-written JSONL rows and artifact
 folders are kept. If the lab or machine restarts during a numbered run, starting
@@ -115,6 +121,12 @@ cadybara export-training workspace/smoke_test_001.jsonl workspace/training_pairs
 
 Rows with errors or empty outputs are skipped by default. This is a data-prep
 step, not model training itself.
+
+Export all attempts to a spreadsheet-friendly CSV:
+
+```bash
+cadybara export-csv workspace/runs/wall_planter_family_sweep_001/results.jsonl workspace/wall_planter_attempts.csv
+```
 
 ## Local Lab and Model Cache
 

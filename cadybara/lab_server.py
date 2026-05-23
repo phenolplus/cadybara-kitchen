@@ -25,7 +25,8 @@ from cadybara.model_queue import (
     pull_model_queue,
 )
 from cadybara.reviews import append_score, review_items, review_path
-from cadybara.runner import read_jsonl_records, run_config
+from cadybara.records import resume_key
+from cadybara.runner import read_jsonl_records, record_is_complete, run_config
 
 DEFAULT_PROJECT_CONFIG = "projects/wall-planter-cad-study/configs/family_sweep.yaml"
 
@@ -253,7 +254,8 @@ def has_resumable_rows(config: ExperimentConfig, *, dry_run: bool) -> bool:
     rows = read_jsonl_records(output_path)
     if not rows.records:
         return False
-    if len(rows.records) >= total_cells(config):
+    completed = {resume_key(record) for record in rows.records if record_is_complete(record)}
+    if len(completed) >= total_cells(config):
         return False
     current_hash = config_hash(config)
     return all(record.config_hash == current_hash for record in rows.records)
@@ -262,8 +264,17 @@ def has_resumable_rows(config: ExperimentConfig, *, dry_run: bool) -> bool:
 def assign_run_config_for_start(config: ExperimentConfig, *, dry_run: bool) -> RunAssignment:
     latest_config = assign_numbered_run_config(config, create=False)
     latest_dir = Path(latest_config.output_path).parent
-    if latest_dir.exists() and has_resumable_rows(latest_config, dry_run=dry_run):
-        return RunAssignment(config=latest_config, resuming=True)
+    if latest_dir.exists():
+        output_path = Path(
+            practice_output_path(latest_config.output_path)
+            if dry_run
+            else latest_config.output_path
+        )
+        rows = read_jsonl_records(output_path)
+        if not rows.records:
+            return RunAssignment(config=latest_config, resuming=False)
+        if has_resumable_rows(latest_config, dry_run=dry_run):
+            return RunAssignment(config=latest_config, resuming=True)
     return RunAssignment(config=assign_numbered_run_config(config, create=True), resuming=False)
 
 
@@ -278,11 +289,13 @@ def write_assigned_config(config: ExperimentConfig) -> None:
 
 def progress_for_path(path: str, total: int) -> dict[str, Any]:
     rows = read_jsonl_records(Path(path))
+    completed = {resume_key(record) for record in rows.records if record_is_complete(record)}
     return {
         "output_path": path,
         "valid_rows": len(rows.records),
+        "completed_cells": len(completed),
         "malformed_rows": rows.malformed_count,
-        "complete_percent": round((len(rows.records) / total) * 100, 1) if total else 0,
+        "complete_percent": round((len(completed) / total) * 100, 1) if total else 0,
     }
 
 
@@ -335,6 +348,7 @@ def saved_outputs(config: ExperimentConfig, *, dry_run: bool, limit: int = 20) -
                 "seed_id": record.seed_id,
                 "seed_text": record.seed_text,
                 "repetition": record.repetition,
+                "attempt": record.attempt,
                 "temperature": record.sampling.get("temperature"),
                 "latency_ms": record.latency_ms,
                 "error": record.error,

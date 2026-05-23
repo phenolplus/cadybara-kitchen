@@ -19,6 +19,19 @@ def test_extract_code_prefers_python_fence() -> None:
     assert extract_code(output) == "result = 1\n"
 
 
+def test_extract_code_removes_model_side_exports() -> None:
+    output = """
+```python
+import cadquery as cq
+result = cq.Workplane("XY").box(1, 1, 1)
+cq.exporters.export(result, "part.stl")
+```
+"""
+    code = extract_code(output)
+    assert "exporters.export" not in code
+    assert "result =" in code
+
+
 def test_export_cadquery_code_writes_stl_and_step(tmp_path) -> None:
     if importlib.util.find_spec("cadquery") is None:
         pytest.skip("cadquery is not installed")

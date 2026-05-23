@@ -91,8 +91,22 @@ result = result.cut(key_round).cut(key_slot)
 def extract_code(output: str) -> str:
     match = BLOCK_RE.search(output)
     if match:
-        return match.group(1).strip() + "\n"
-    return output.strip() + "\n"
+        code = match.group(1)
+    else:
+        code = output
+    return sanitize_code(code)
+
+
+def sanitize_code(code: str) -> str:
+    kept_lines = []
+    for line in code.strip().splitlines():
+        stripped = line.strip()
+        if "cq.exporters.export" in stripped:
+            continue
+        if stripped.startswith("show_object(") or stripped.startswith("print("):
+            continue
+        kept_lines.append(line)
+    return "\n".join(kept_lines).strip() + "\n"
 
 
 def safe_slug(value: str, *, max_length: int = 80) -> str:

@@ -95,6 +95,14 @@ without losing completed rows. If the worker restarts mid-run, start the lab
 again and click `Start Real Run`; it resumes the latest incomplete numbered run
 folder instead of starting over.
 
+CAD code failures are expected data. Each failed attempt is saved to JSONL, then
+the same condition is tried again up to the config's `max_attempts_per_cell`.
+Export the final attempt table with:
+
+```powershell
+.\.venv\Scripts\cadybara.exe export-csv workspace/runs/wall_planter_family_sweep_001/results.jsonl workspace/wall_planter_attempts.csv
+```
+
 ## Headless Run
 
 If you do not need the UI:

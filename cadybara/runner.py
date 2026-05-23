@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import sys
 import time
+from collections import Counter
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -14,7 +15,7 @@ from pydantic import ValidationError
 
 from cadybara.cadquery_runner import cadquery_prompt, write_cadquery_artifacts
 from cadybara.config import ExperimentConfig, ModelConfig, config_hash, load_config
-from cadybara.providers.base import ModelProvider, ProviderResponse
+from cadybara.providers.base import GenerationStopped, ModelProvider, ProviderResponse
 from cadybara.providers.dry_run import DryRunProvider
 from cadybara.providers.ollama import OllamaProvider
 from cadybara.records import RunRecord, resume_key
@@ -140,6 +141,13 @@ def sampling_seed(key: tuple[str, str, str, str, float, int]) -> int:
     return int(hashlib.sha256(payload.encode("utf-8")).hexdigest()[:8], 16)
 
 
+def sampling_seed_for_attempt(key: tuple[str, str, str, str, float, int], attempt: int) -> int:
+    if attempt <= 1:
+        return sampling_seed(key)
+    payload = "|".join(str(part) for part in key) + f"|attempt={attempt}"
+    return int(hashlib.sha256(payload.encode("utf-8")).hexdigest()[:8], 16)
+
+
 def timestamp_utc() -> str:
     return datetime.now(UTC).isoformat().replace("+00:00", "Z")
 
@@ -188,9 +196,27 @@ def completed_keys(
     *,
     retry_errors: bool,
 ) -> set[tuple[str, str, str, str, float, int]]:
+    return {resume_key(record) for record in records if record_is_complete(record)}
+
+
+def record_is_complete(record: RunRecord) -> bool:
+    if record.error is not None:
+        return False
+    if record.provider == "dry_run":
+        return True
+    if record.output_mode == "cadquery":
+        return record.render_error is None and bool((record.artifacts or {}).get("stl"))
+    return True
+
+
+def attempt_counts(
+    records: list[RunRecord],
+    *,
+    retry_errors: bool,
+) -> Counter[tuple[str, str, str, str, float, int]]:
     if retry_errors:
-        return {resume_key(record) for record in records if record.error is None}
-    return {resume_key(record) for record in records}
+        return Counter(resume_key(record) for record in records if record_is_complete(record))
+    return Counter(resume_key(record) for record in records)
 
 
 def generate_with_retries(
@@ -201,11 +227,26 @@ def generate_with_retries(
     max_tokens: int,
     seed: int,
     provider_retries: int,
+    should_stop: Callable[[], bool] | None = None,
 ) -> tuple[ProviderResponse | None, str | None, int]:
     started = time.perf_counter()
     last_error: str | None = None
     for attempt in range(provider_retries + 1):
         try:
+            if should_stop is not None and should_stop():
+                raise GenerationStopped("generation stopped by user")
+            if should_stop is not None and hasattr(provider, "generate_interruptible"):
+                return (
+                    provider.generate_interruptible(  # type: ignore[attr-defined]
+                        prompt,
+                        temperature=temperature,
+                        max_tokens=max_tokens,
+                        seed=seed,
+                        should_stop=should_stop,
+                    ),
+                    None,
+                    int((time.perf_counter() - started) * 1000),
+                )
             return (
                 provider.generate(
                     prompt,
@@ -216,6 +257,8 @@ def generate_with_retries(
                 None,
                 int((time.perf_counter() - started) * 1000),
             )
+        except GenerationStopped:
+            raise
         except Exception as exc:  # noqa: BLE001 - provider failures are recorded as data.
             last_error = str(exc)
             if attempt >= provider_retries:
@@ -231,6 +274,7 @@ def make_record(
     cell: RunCell,
     provider_name: str,
     seed: int,
+    attempt: int,
     prompt_sent: str,
     response: ProviderResponse | None,
     error: str | None,
@@ -249,6 +293,7 @@ def make_record(
         provider=provider_name,
         seed_id=cell.seed_id,
         seed_text=cell.seed_text,
+        seed_metadata=cell.seed_metadata,
         strategy=cell.strategy.name,
         variant_id=cell.variant.variant_id,
         variant_text=cell.variant.text,
@@ -256,6 +301,7 @@ def make_record(
         prompt_sent=prompt_sent,
         output_mode=config.output_mode,
         condition_name=condition_name(cell),
+        attempt=attempt,
         sampling={
             "temperature": cell.temperature,
             "seed": seed,
@@ -310,6 +356,7 @@ def run_config(
         allow_config_mismatch=allow_config_mismatch,
     )
     completed = completed_keys(existing.records, retry_errors=retry_errors)
+    attempts_by_key = attempt_counts(existing.records, retry_errors=retry_errors)
     cells = build_cells(config)
     scorer = StubScorer()
     executed = 0
@@ -339,50 +386,92 @@ def run_config(
                 )
                 continue
 
-            seed = sampling_seed(key)
-            provider_name, provider = provider_for_model(cell.model, dry_run=dry_run)
-            prompt_sent = provider_prompt(config, cell.variant.text)
-            response, error, elapsed_ms = generate_with_retries(
-                provider,
-                prompt_sent,
-                temperature=cell.temperature,
-                max_tokens=config.sampling.max_tokens,
-                seed=seed,
-                provider_retries=provider_retries,
-            )
-            run_id = str(uuid4())
-            record = make_record(
-                run_id=run_id,
-                config=config,
-                config_hash_value=hash_value,
-                cell=cell,
-                provider_name=provider_name,
-                seed=seed,
-                prompt_sent=prompt_sent,
-                response=response,
-                error=error,
-                elapsed_ms=elapsed_ms,
-                scorer=scorer,
-            )
-            if error is None and response is not None and config.output_mode == "cadquery":
-                artifacts, render_error = write_cadquery_artifacts(
-                    record=record,
+            attempts_so_far = attempts_by_key[key]
+            if attempts_so_far >= config.sampling.max_attempts_per_cell:
+                skipped += 1
+                print(
+                    f"[{index}/{len(cells)}] MAX ATTEMPTS "
+                    f"{cell.model.name} {cell.seed_id} {cell.strategy.name} "
+                    f"t={cell.temperature} r={cell.repetition} "
+                    f"attempts={attempts_so_far}",
+                    file=output_stream,
+                )
+                continue
+
+            while attempts_by_key[key] < config.sampling.max_attempts_per_cell:
+                if should_stop is not None and should_stop():
+                    stopped = True
+                    print(
+                        f"[{index}/{len(cells)}] STOP requested; no retry generation started.",
+                        file=output_stream,
+                    )
+                    break
+                if limit is not None and executed >= limit:
+                    break
+
+                attempt = attempts_by_key[key] + 1
+                seed = sampling_seed_for_attempt(key, attempt)
+                provider_name, provider = provider_for_model(cell.model, dry_run=dry_run)
+                prompt_sent = provider_prompt(config, cell.variant.text)
+                try:
+                    response, error, elapsed_ms = generate_with_retries(
+                        provider,
+                        prompt_sent,
+                        temperature=cell.temperature,
+                        max_tokens=config.sampling.max_tokens,
+                        seed=seed,
+                        provider_retries=provider_retries,
+                        should_stop=should_stop,
+                    )
+                except GenerationStopped:
+                    stopped = True
+                    print(
+                        f"[{index}/{len(cells)}] STOP requested; current generation was cancelled.",
+                        file=output_stream,
+                    )
+                    break
+                run_id = str(uuid4())
+                record = make_record(
+                    run_id=run_id,
+                    config=config,
+                    config_hash_value=hash_value,
+                    cell=cell,
+                    provider_name=provider_name,
+                    seed=seed,
+                    attempt=attempt,
                     prompt_sent=prompt_sent,
-                    artifact_root=artifact_root_for_config(config),
+                    response=response,
+                    error=error,
+                    elapsed_ms=elapsed_ms,
+                    scorer=scorer,
                 )
-                record = record.model_copy(
-                    update={"artifacts": artifacts, "render_error": render_error},
+                if error is None and response is not None and config.output_mode == "cadquery" and not dry_run:
+                    artifacts, render_error = write_cadquery_artifacts(
+                        record=record,
+                        prompt_sent=prompt_sent,
+                        artifact_root=artifact_root_for_config(config),
+                    )
+                    record = record.model_copy(
+                        update={"artifacts": artifacts, "render_error": render_error},
+                    )
+                append_record(handle, record)
+                attempts_by_key[key] += 1
+                executed += 1
+                if error is not None:
+                    errors += 1
+                status = "STL ready" if record_is_complete(record) else "attempt failed"
+                print(
+                    f"[{index}/{len(cells)}] {cell.model.name} {cell.seed_id} "
+                    f"{cell.strategy.name} t={cell.temperature} r={cell.repetition} "
+                    f"attempt={attempt}/{config.sampling.max_attempts_per_cell} "
+                    f"{status} ({record.latency_ms / 1000:.1f}s)",
+                    file=output_stream,
                 )
-            append_record(handle, record)
-            executed += 1
-            if error is not None:
-                errors += 1
-            print(
-                f"[{index}/{len(cells)}] {cell.model.name} {cell.seed_id} "
-                f"{cell.strategy.name} t={cell.temperature} r={cell.repetition} "
-                f"({record.latency_ms / 1000:.1f}s)",
-                file=output_stream,
-            )
+                if record_is_complete(record):
+                    completed.add(key)
+                    break
+            if stopped or (limit is not None and executed >= limit):
+                break
 
     print(
         "Summary: "

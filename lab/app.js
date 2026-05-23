@@ -172,7 +172,8 @@ function renderExperimentProgress() {
   runTitle.textContent = `Run ${exp.total_cells} generations`;
   runExplain.textContent = generationLabel;
   pilotSummary.textContent = `${exp.seed_count} planter prompts`;
-  progressText.textContent = `${selected.valid_rows}/${exp.total_cells} ${dryRun ? "practice" : "real"} rows`;
+  const completedCells = selected.completed_cells ?? selected.valid_rows;
+  progressText.textContent = `${completedCells}/${exp.total_cells} products - ${selected.valid_rows} attempts`;
   progressPercent.textContent = `${selected.complete_percent}%`;
   progressFill.style.width = `${selected.complete_percent}%`;
   outputPath.textContent = selected.output_path;
@@ -211,7 +212,7 @@ function renderResults(results) {
     item.className = row.error ? "result-item error" : "result-item";
     const summary = document.createElement("summary");
     const title = document.createElement("span");
-    title.textContent = `#${row.sequence} / ${row.provider} / ${row.model_name} / ${row.seed_id} / t=${row.temperature} / rep ${row.repetition}`;
+    title.textContent = `#${row.sequence} / ${row.provider} / ${row.model_name} / ${row.seed_id} / t=${row.temperature} / rep ${row.repetition} / attempt ${row.attempt ?? 1}`;
     const meta = document.createElement("span");
     meta.textContent = row.error ? "error" : `${row.latency_ms} ms`;
     summary.append(title, meta);
@@ -261,7 +262,7 @@ function renderResultsV2(results) {
     item.className = row.error || row.render_error ? "result-item error" : "result-item";
     const summary = document.createElement("summary");
     const title = document.createElement("span");
-    title.textContent = `#${row.sequence} / ${row.provider} / ${row.model_name} / ${row.seed_id} / t=${row.temperature} / rep ${row.repetition}`;
+    title.textContent = `#${row.sequence} / ${row.provider} / ${row.model_name} / ${row.seed_id} / t=${row.temperature} / rep ${row.repetition} / attempt ${row.attempt ?? 1}`;
     const meta = document.createElement("span");
     if (row.error) {
       meta.textContent = "provider error";
@@ -309,7 +310,7 @@ async function renderReview() {
   const item = reviewItems[reviewIndex];
   reviewPosition.textContent = `${reviewIndex + 1} / ${reviewItems.length}`;
   reviewTitle.textContent = `${item.model_name} / ${item.seed_id}`;
-  reviewSubtitle.textContent = `t=${item.temperature} / rep ${item.repetition} / ${item.provider}`;
+  reviewSubtitle.textContent = `t=${item.temperature} / rep ${item.repetition} / attempt ${item.attempt ?? 1} / ${item.provider}`;
   prevReview.disabled = reviewIndex === 0;
   nextReview.disabled = reviewIndex >= reviewItems.length - 1;
 
@@ -318,6 +319,7 @@ async function renderReview() {
     ["Condition", item.condition_name || "unknown"],
     ["Latency", `${item.latency_ms} ms`],
     ["Tokens", `${item.prompt_tokens ?? "?"} in / ${item.completion_tokens ?? "?"} out`],
+    ["Attempt", `${item.attempt ?? 1}`],
     ["Render", item.render_error ? "failed; code is still saved" : "STL ready"],
     ["Score", item.review?.score ? `${item.review.score}/10` : "not scored"],
   ];
