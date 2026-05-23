@@ -77,9 +77,23 @@ Open the printed URL. From another computer on the same network, use:
 http://WORKER_IP_ADDRESS:8787/lab/
 ```
 
+Before the overnight sweep, run:
+
+```powershell
+.\.venv\Scripts\cadybara.exe cad-smoke
+.\.venv\Scripts\cadybara.exe run projects/wall-planter-cad-study/configs/smoke_fast.yaml --limit 1
+.\.venv\Scripts\cadybara.exe run projects/wall-planter-cad-study/configs/smoke_fast.yaml --limit 1
+```
+
+The first command proves CadQuery can export an STL/STEP. The second command
+makes one real local Ollama CAD-code generation. The third command should skip
+the completed row, proving resume is working before the long run starts.
+
 Click `Start Real Run`. The run asks local models for CadQuery code, exports
 STL/STEP products, and saves everything. Use `Stop After Current` to pause
-without losing completed rows.
+without losing completed rows. If the worker restarts mid-run, start the lab
+again and click `Start Real Run`; it resumes the latest incomplete numbered run
+folder instead of starting over.
 
 ## Headless Run
 

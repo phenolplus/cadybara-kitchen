@@ -5,6 +5,7 @@ import re
 import threading
 import time
 from collections import deque
+from dataclasses import dataclass
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
@@ -12,7 +13,7 @@ from urllib.parse import parse_qs, urlparse
 
 import yaml
 
-from cadybara.config import ExperimentConfig
+from cadybara.config import ExperimentConfig, config_hash
 from cadybara.config import load_config
 from cadybara.model_queue import (
     DEFAULT_MODEL_QUEUE_PATH,
@@ -24,9 +25,15 @@ from cadybara.model_queue import (
     pull_model_queue,
 )
 from cadybara.reviews import append_score, review_items, review_path
-from cadybara.runner import read_jsonl_records, run_config, run_config_path
+from cadybara.runner import read_jsonl_records, run_config
 
 DEFAULT_PROJECT_CONFIG = "projects/wall-planter-cad-study/configs/family_sweep.yaml"
+
+
+@dataclass(frozen=True)
+class RunAssignment:
+    config: ExperimentConfig
+    resuming: bool
 
 
 class JobLog:
@@ -111,12 +118,20 @@ class LabState:
                 return False
             self.run_job = JobLog("experiment-run")
             self.stop_event.clear()
-            assigned_config = assign_numbered_run_config(load_config(config_path))
+            assignment = assign_run_config_for_start(load_config(config_path), dry_run=dry_run)
+            assigned_config = assignment.config
             self.active_run_config = assigned_config
             write_assigned_config(assigned_config)
 
             def target() -> None:
                 self.run_job.set_status("running")
+                action = "Resuming" if assignment.resuming else "Starting"
+                target_path = (
+                    practice_output_path(assigned_config.output_path)
+                    if dry_run
+                    else assigned_config.output_path
+                )
+                self.run_job.write(f"{action} run folder: {Path(target_path).parent}")
                 try:
                     if dry_run:
                         run_config(
@@ -191,6 +206,16 @@ def base_experiment_id(experiment_id: str) -> str:
     return re.sub(r"_\d{3}$", "", experiment_id)
 
 
+def total_cells(config: ExperimentConfig) -> int:
+    return (
+        len(config.models)
+        * len(config.seeds)
+        * len(config.strategies)
+        * len(config.sampling.temperatures)
+        * config.sampling.repetitions
+    )
+
+
 def assign_numbered_run_config(config: ExperimentConfig, *, create: bool = True) -> ExperimentConfig:
     base_id = base_experiment_id(config.experiment_id)
     root = Path("workspace") / "runs"
@@ -223,6 +248,25 @@ def assign_numbered_run_config(config: ExperimentConfig, *, create: bool = True)
     )
 
 
+def has_resumable_rows(config: ExperimentConfig, *, dry_run: bool) -> bool:
+    output_path = Path(practice_output_path(config.output_path) if dry_run else config.output_path)
+    rows = read_jsonl_records(output_path)
+    if not rows.records:
+        return False
+    if len(rows.records) >= total_cells(config):
+        return False
+    current_hash = config_hash(config)
+    return all(record.config_hash == current_hash for record in rows.records)
+
+
+def assign_run_config_for_start(config: ExperimentConfig, *, dry_run: bool) -> RunAssignment:
+    latest_config = assign_numbered_run_config(config, create=False)
+    latest_dir = Path(latest_config.output_path).parent
+    if latest_dir.exists() and has_resumable_rows(latest_config, dry_run=dry_run):
+        return RunAssignment(config=latest_config, resuming=True)
+    return RunAssignment(config=assign_numbered_run_config(config, create=True), resuming=False)
+
+
 def write_assigned_config(config: ExperimentConfig) -> None:
     config_path = Path(config.output_path).parent / "config.yaml"
     config_path.parent.mkdir(parents=True, exist_ok=True)
@@ -247,13 +291,7 @@ def experiment_progress(config_path: Path, *, config: ExperimentConfig | None = 
         config = config or load_config(config_path)
     except Exception as exc:  # noqa: BLE001
         return {"config_error": str(exc)}
-    total = (
-        len(config.models)
-        * len(config.seeds)
-        * len(config.strategies)
-        * len(config.sampling.temperatures)
-        * config.sampling.repetitions
-    )
+    total = total_cells(config)
     return {
         "config_path": str(config_path),
         "assigned_config_path": str(Path(config.output_path).parent / "config.yaml"),

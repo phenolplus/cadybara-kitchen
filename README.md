@@ -87,9 +87,23 @@ panel loads the generated STL in the 3D viewer, shows the CadQuery source code,
 lets you move forward/backward, and records 1-10 scores; keyboard `1`-`9`
 score directly, and `0` records a 10.
 
+Before leaving a machine running overnight, use the two fast checks below:
+
+```bash
+cadybara cad-smoke
+cadybara run projects/wall-planter-cad-study/configs/smoke_fast.yaml --limit 1
+```
+
+`cad-smoke` verifies that local CadQuery export and the STL viewer path work.
+`smoke_fast.yaml` makes one real local Ollama call with `qwen2.5-coder:0.5b`,
+saves the model's CadQuery code, and exports an STL/STEP product when the code
+renders. Re-running the same smoke command should print `SKIP (already done)`.
+
 While a run is active, use `Stop After Current` to pause the queue after the
 current Ollama generation finishes. Already-written JSONL rows and artifact
-folders are kept, and starting again resumes from the next incomplete cell.
+folders are kept. If the lab or machine restarts during a numbered run, starting
+again resumes the latest incomplete numbered folder; completed runs create the
+next numbered folder.
 
 ## Training Export
 

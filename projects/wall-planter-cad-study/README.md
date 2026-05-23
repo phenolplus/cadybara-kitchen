@@ -50,6 +50,16 @@ Each numbered folder contains:
 
 ## Run Locally
 
+Preflight the CAD/export path and one fast real Ollama generation:
+
+```powershell
+cadybara cad-smoke
+cadybara run projects/wall-planter-cad-study/configs/smoke_fast.yaml --limit 1
+```
+
+Run the fast smoke command a second time to confirm resume; it should skip the
+already-written row instead of appending a duplicate.
+
 Start the lab:
 
 ```powershell
@@ -63,7 +73,9 @@ http://127.0.0.1:8787/lab/
 ```
 
 Click `Start Real Run`. Use `Stop After Current` if you need to pause. Starting
-again resumes from completed rows in the run's JSONL.
+again resumes from completed rows in the run's JSONL. If the lab restarts after
+a partial run, it resumes the latest incomplete numbered folder. Once a run is
+complete, the next start creates the next numbered folder.
 
 Headless:
 
@@ -87,4 +99,3 @@ workspace/reviews/<experiment_id>_reviews.jsonl
 For an always-on worker, follow the repository-level `WORKER_QUICKSTART.md`.
 The worker should run this project config and publish findings to a results
 branch without modifying source code.
-
