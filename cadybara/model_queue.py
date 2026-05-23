@@ -83,7 +83,7 @@ def ollama_version() -> str | None:
             text=True,
             timeout=15,
         )
-    except OSError:
+    except (OSError, subprocess.TimeoutExpired):
         return None
     text = (result.stdout or result.stderr).strip()
     return text or None
@@ -99,9 +99,9 @@ def list_local_models() -> set[str]:
             check=False,
             capture_output=True,
             text=True,
-            timeout=30,
+            timeout=8,
         )
-    except OSError:
+    except (OSError, subprocess.TimeoutExpired):
         return set()
     if result.returncode != 0:
         return set()

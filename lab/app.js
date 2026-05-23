@@ -40,6 +40,8 @@ let reviewIndex = 0;
 
 let dryRun = false;
 let lastStatus = null;
+let refreshTimer = null;
+let refreshInFlight = false;
 
 if (!configInput.value || configInput.value === "configs/example.yaml") {
   configInput.value = DEFAULT_CONFIG;
@@ -63,6 +65,29 @@ async function postJson(url, payload) {
     body: JSON.stringify(payload),
   });
   return response.json();
+}
+
+function runIsActive() {
+  const runStatus = lastStatus?.jobs?.run?.status;
+  const modelStatus = lastStatus?.jobs?.models?.status;
+  return ["running", "stopping"].includes(runStatus) || modelStatus === "running";
+}
+
+function nextRefreshDelay() {
+  if (document.hidden) return null;
+  return runIsActive() ? 1500 : 15000;
+}
+
+function scheduleRefresh(delay = nextRefreshDelay()) {
+  if (refreshTimer) {
+    clearTimeout(refreshTimer);
+    refreshTimer = null;
+  }
+  if (delay === null) return;
+  refreshTimer = window.setTimeout(() => {
+    refreshTimer = null;
+    refresh();
+  }, delay);
 }
 
 function setRunMode(nextDryRun) {
@@ -394,30 +419,37 @@ async function refreshReviewSummary() {
 }
 
 async function refresh() {
-  const data = await fetch(statusUrl()).then((response) => response.json());
-  lastStatus = data;
+  if (refreshInFlight) return;
+  refreshInFlight = true;
+  try {
+    const data = await fetch(statusUrl()).then((response) => response.json());
+    lastStatus = data;
 
-  const ollama = data.ollama;
-  ollamaState.textContent = ollama.available ? "Ready" : "Missing";
+    const ollama = data.ollama;
+    ollamaState.textContent = ollama.available ? "Ready" : "Missing";
 
-  const counts = modelCounts(data.models);
-  modelSummary.textContent =
-    counts.installed === counts.total
-      ? `${counts.installed}/${counts.total} ready`
-      : `${counts.installed}/${counts.total} ready`;
-  modelDetailSummary.textContent =
-    counts.active > 0 ? `${counts.active} downloading` : "Show installed models";
+    const counts = modelCounts(data.models);
+    modelSummary.textContent =
+      counts.installed === counts.total
+        ? `${counts.installed}/${counts.total} ready`
+        : `${counts.installed}/${counts.total} ready`;
+    modelDetailSummary.textContent =
+      counts.active > 0 ? `${counts.active} downloading` : "Show installed models";
 
-  const exp = data.experiment;
-  latestExperiment = exp;
-  renderExperimentProgress();
+    const exp = data.experiment;
+    latestExperiment = exp;
+    renderExperimentProgress();
 
-  renderModels(data.models);
-  renderLog(runLog, data.jobs.run);
-  renderLog(modelLog, data.jobs.models);
-  await refreshReviewSummary();
-  await refreshResults();
-  updateStartState();
+    renderModels(data.models);
+    renderLog(runLog, data.jobs.run);
+    renderLog(modelLog, data.jobs.models);
+    await refreshReviewSummary();
+    await refreshResults();
+    updateStartState();
+  } finally {
+    refreshInFlight = false;
+    scheduleRefresh();
+  }
 }
 
 modeDry.addEventListener("click", () => setRunMode(true));
@@ -463,7 +495,13 @@ stopRun.addEventListener("click", async () => {
   stopRun.textContent = "Stop After Current";
 });
 configInput.addEventListener("change", refresh);
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) {
+    scheduleRefresh(null);
+  } else {
+    refresh();
+  }
+});
 
 setRunMode(false);
-setInterval(refresh, 1500);
 refresh();

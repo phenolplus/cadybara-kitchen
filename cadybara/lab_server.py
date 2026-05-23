@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import re
 import threading
+import time
 from collections import deque
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -67,6 +68,8 @@ class LabState:
         self.run_thread: threading.Thread | None = None
         self.stop_event = threading.Event()
         self.active_run_config: ExperimentConfig | None = None
+        self.model_cache: dict[str, Any] | None = None
+        self.model_cache_at = 0.0
         self.lock = threading.Lock()
 
     def start_models(self, *, limit: int | None = None, family: str | None = None) -> bool:
@@ -74,6 +77,8 @@ class LabState:
             if self.model_thread is not None and self.model_thread.is_alive():
                 return False
             self.model_job = JobLog("model-prefetch")
+            self.model_cache = None
+            self.model_cache_at = 0.0
 
             def target() -> None:
                 self.model_job.set_status("running")
@@ -146,6 +151,29 @@ class LabState:
             self.run_job.write("Stop requested. Current generation will finish, then the queue will pause.")
             self.run_job.set_status("stopping")
             return True
+
+    def model_snapshot(self) -> dict[str, Any]:
+        model_status = self.model_job.snapshot()["status"]
+        cache_ttl = 2.0 if model_status in {"running", "stopping"} else 30.0
+        now = time.monotonic()
+        with self.lock:
+            if self.model_cache is not None and now - self.model_cache_at < cache_ttl:
+                return self.model_cache
+
+        queue = load_model_queue(DEFAULT_MODEL_QUEUE_PATH)
+        exe = ollama_path()
+        snapshot = {
+            "ollama": {
+                "available": exe is not None,
+                "path": exe,
+                "version": ollama_version() if exe is not None else None,
+            },
+            "models": model_status_rows(queue, state_path=DEFAULT_MODEL_STATE_PATH),
+        }
+        with self.lock:
+            self.model_cache = snapshot
+            self.model_cache_at = now
+        return snapshot
 
     def display_config(self, config_path: Path) -> ExperimentConfig:
         with self.lock:
@@ -312,15 +340,11 @@ def make_handler(state: LabState):
             if parsed.path == "/api/status":
                 config_path = Path(parse_qs(parsed.query).get("config", [DEFAULT_PROJECT_CONFIG])[0])
                 display_config = state.display_config(config_path)
-                queue = load_model_queue(DEFAULT_MODEL_QUEUE_PATH)
+                model_snapshot = state.model_snapshot()
                 self._json(
                     {
-                        "ollama": {
-                            "available": ollama_path() is not None,
-                            "path": ollama_path(),
-                            "version": ollama_version(),
-                        },
-                        "models": model_status_rows(queue, state_path=DEFAULT_MODEL_STATE_PATH),
+                        "ollama": model_snapshot["ollama"],
+                        "models": model_snapshot["models"],
                         "jobs": {
                             "models": state.model_job.snapshot(),
                             "run": state.run_job.snapshot(),

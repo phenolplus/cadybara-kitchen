@@ -8,31 +8,59 @@ const nameEl = document.querySelector("#part-name");
 const metaEl = document.querySelector("#part-meta");
 const fileInput = document.querySelector("#file-input");
 
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "low-power" });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
 renderer.setClearColor(0x101512, 1);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 5000);
 const controls = new OrbitControls(camera, renderer.domElement);
-controls.enableDamping = true;
-controls.dampingFactor = 0.08;
+controls.enableDamping = false;
+controls.screenSpacePanning = true;
 
 const root = new THREE.Group();
 scene.add(root);
 
-scene.add(new THREE.AmbientLight(0xffffff, 0.65));
+scene.add(new THREE.HemisphereLight(0xe6fff0, 0x27352d, 1.05));
 const keyLight = new THREE.DirectionalLight(0xffffff, 1.8);
 keyLight.position.set(80, -120, 140);
+keyLight.castShadow = true;
+keyLight.shadow.mapSize.set(1024, 1024);
 scene.add(keyLight);
 const fillLight = new THREE.DirectionalLight(0xb8d7ff, 0.75);
 fillLight.position.set(-140, 120, 90);
 scene.add(fillLight);
+const rimLight = new THREE.DirectionalLight(0x9dffbd, 0.85);
+rimLight.position.set(-100, -80, 180);
+scene.add(rimLight);
 
 const grid = new THREE.GridHelper(160, 16, 0x587064, 0x2c3a33);
 grid.rotation.x = Math.PI / 2;
 scene.add(grid);
 scene.add(new THREE.AxesHelper(42));
+
+const shadowPlane = new THREE.Mesh(
+  new THREE.PlaneGeometry(1000, 1000),
+  new THREE.ShadowMaterial({ color: 0x000000, opacity: 0.2 }),
+);
+shadowPlane.receiveShadow = true;
+scene.add(shadowPlane);
+
+let renderQueued = false;
+
+function requestRender() {
+  if (renderQueued || document.hidden) return;
+  renderQueued = true;
+  requestAnimationFrame(() => {
+    renderQueued = false;
+    renderer.render(scene, camera);
+  });
+}
 
 function resize() {
   const width = window.innerWidth;
@@ -40,9 +68,14 @@ function resize() {
   renderer.setSize(width, height, false);
   camera.aspect = width / height;
   camera.updateProjectionMatrix();
+  requestRender();
 }
 
 window.addEventListener("resize", resize);
+controls.addEventListener("change", requestRender);
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) requestRender();
+});
 resize();
 
 function makeMaterial(object) {
@@ -57,11 +90,18 @@ function makeMaterial(object) {
 }
 
 function addEdges(mesh) {
+  if (mesh.geometry.attributes.position?.count > 120000) return;
   const edges = new THREE.LineSegments(
     new THREE.EdgesGeometry(mesh.geometry),
     new THREE.LineBasicMaterial({ color: 0x162018, transparent: true, opacity: 0.42 }),
   );
   mesh.add(edges);
+}
+
+function prepMesh(mesh) {
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  return mesh;
 }
 
 function objectPosition(object) {
@@ -77,7 +117,7 @@ function buildBox(object) {
   );
   mesh.position.set(...objectPosition(object));
   addEdges(mesh);
-  return mesh;
+  return prepMesh(mesh);
 }
 
 function buildCylinder(object) {
@@ -94,7 +134,7 @@ function buildCylinder(object) {
   }
   mesh.position.set(...objectPosition(object));
   addEdges(mesh);
-  return mesh;
+  return prepMesh(mesh);
 }
 
 function buildPlateWithHoles(object) {
@@ -121,7 +161,7 @@ function buildPlateWithHoles(object) {
   const mesh = new THREE.Mesh(geometry, makeMaterial(object));
   mesh.position.set(...objectPosition(object));
   addEdges(mesh);
-  return mesh;
+  return prepMesh(mesh);
 }
 
 function buildObject(object) {
@@ -153,6 +193,9 @@ function fitCamera() {
   camera.updateProjectionMatrix();
   controls.target.copy(center);
   controls.update();
+  grid.position.set(center.x, center.y, box.min.z - 0.6);
+  shadowPlane.position.set(center.x, center.y, box.min.z - 0.7);
+  requestRender();
 }
 
 function renderSceneArtifact(artifact, sourceLabel) {
@@ -176,10 +219,11 @@ function renderStlGeometry(geometry, sourceLabel) {
       color: 0x78c894,
       roughness: 0.44,
       metalness: 0.06,
+      envMapIntensity: 0.6,
     }),
   );
   addEdges(mesh);
-  root.add(mesh);
+  root.add(prepMesh(mesh));
   nameEl.textContent = sourceLabel.split("/").pop() || "Generated CAD model";
   metaEl.textContent = `STL mesh · ${sourceLabel}`;
   statusEl.textContent = "Drag to orbit. Scroll to zoom. Right-drag to pan.";
@@ -212,16 +256,9 @@ fileInput.addEventListener("change", async () => {
   }
 });
 
-function animate() {
-  controls.update();
-  renderer.render(scene, camera);
-  requestAnimationFrame(animate);
-}
-
-animate();
-
 loadArtifactFromUrl().catch((error) => {
   statusEl.textContent = error.message;
   nameEl.textContent = "No artifact loaded";
   metaEl.textContent = "";
+  requestRender();
 });
