@@ -7,7 +7,7 @@ save CAD products, and push findings back to GitHub without changing source code
 
 Input:
 
-- YAML config, usually `projects/wall-planter-cad-study/configs/family_sweep.yaml`
+- YAML config, usually `projects/wall-planter-cad-study/configs/morning_sweep.yaml`
 - Local Ollama models
 - The prompt ladder in the config
 
@@ -21,7 +21,7 @@ Output:
 Publish:
 
 - Copies findings into `results/<experiment>/<timestamp_machine>/`
-- Creates a new Git branch named like `results/wall_planter_family_sweep_001/<machine>-<timestamp>`
+- Creates a new Git branch named like `results/wall_planter_morning_sweep_001/<machine>-<timestamp>`
 - Commits only that result snapshot
 - Pushes that branch to GitHub
 
@@ -97,10 +97,12 @@ folder instead of starting over.
 
 CAD code failures are expected data. Each failed attempt is saved to JSONL, then
 the same condition is tried again up to the config's `max_attempts_per_cell`.
+The harness does not repair model source code; it only provides the prompt's
+CadQuery command reference and records whether the returned code executes.
 Export the final attempt table with:
 
 ```powershell
-.\.venv\Scripts\cadybara.exe export-csv workspace/runs/wall_planter_family_sweep_001/results.jsonl workspace/wall_planter_attempts.csv
+.\.venv\Scripts\cadybara.exe export-csv workspace/runs/wall_planter_morning_sweep_001/results.jsonl workspace/wall_planter_attempts.csv
 ```
 
 ## Headless Run
@@ -108,13 +110,13 @@ Export the final attempt table with:
 If you do not need the UI:
 
 ```powershell
-.\.venv\Scripts\cadybara.exe run projects/wall-planter-cad-study/configs/family_sweep.yaml
+.\.venv\Scripts\cadybara.exe run projects/wall-planter-cad-study/configs/morning_sweep.yaml
 ```
 
 or:
 
 ```bash
-.venv/bin/cadybara run projects/wall-planter-cad-study/configs/family_sweep.yaml
+.venv/bin/cadybara run projects/wall-planter-cad-study/configs/morning_sweep.yaml
 ```
 
 The CLI resumes from the JSONL if interrupted.
@@ -124,13 +126,13 @@ The CLI resumes from the JSONL if interrupted.
 After the run, publish the results snapshot:
 
 ```powershell
-.\.venv\Scripts\python.exe scripts/worker_publish_results.py --config projects/wall-planter-cad-study/configs/family_sweep.yaml
+.\.venv\Scripts\python.exe scripts/worker_publish_results.py --config projects/wall-planter-cad-study/configs/morning_sweep.yaml
 ```
 
 or:
 
 ```bash
-.venv/bin/python scripts/worker_publish_results.py --config projects/wall-planter-cad-study/configs/family_sweep.yaml
+.venv/bin/python scripts/worker_publish_results.py --config projects/wall-planter-cad-study/configs/morning_sweep.yaml
 ```
 
 The script refuses to publish if tracked source files are modified. It stages
@@ -144,7 +146,7 @@ safest options are GitHub Desktop, Git Credential Manager, or `gh auth login`.
 Use this if you want to inspect the commit before pushing:
 
 ```powershell
-.\.venv\Scripts\python.exe scripts/worker_publish_results.py --config projects/wall-planter-cad-study/configs/family_sweep.yaml --no-push
+.\.venv\Scripts\python.exe scripts/worker_publish_results.py --config projects/wall-planter-cad-study/configs/morning_sweep.yaml --no-push
 ```
 
 ## If Something Looks Wrong
@@ -155,7 +157,7 @@ Check the worker state:
 git remote -v
 git status --short
 .\.venv\Scripts\cadybara.exe model-status
-.\.venv\Scripts\cadybara.exe inspect workspace/runs/wall_planter_family_sweep_001/results.jsonl
+.\.venv\Scripts\cadybara.exe inspect workspace/runs/wall_planter_morning_sweep_001/results.jsonl
 ```
 
 The expected remote is:

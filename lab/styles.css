@@ -333,6 +333,11 @@ summary span:last-child {
   margin: 0 12px 12px;
 }
 
+.result-failure {
+  border-color: rgba(222, 117, 117, 0.34);
+  color: #f1c0b9;
+}
+
 .empty-results {
   color: #aebfb4;
   font-size: 14px;

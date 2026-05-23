@@ -118,7 +118,14 @@ def provider_for_model(model: ModelConfig, *, dry_run: bool) -> tuple[str, Model
     if dry_run:
         return "dry_run", DryRunProvider()
     if model.provider == "ollama":
-        return model.provider, OllamaProvider(model_name=model.name, base_url=model.base_url)
+        return (
+            model.provider,
+            OllamaProvider(
+                model_name=model.name,
+                base_url=model.base_url,
+                timeout=model.timeout_seconds,
+            ),
+        )
     raise ValueError(f"Unsupported provider: {model.provider}")
 
 
@@ -459,7 +466,10 @@ def run_config(
                 executed += 1
                 if error is not None:
                     errors += 1
-                status = "STL ready" if record_is_complete(record) else "attempt failed"
+                if record_is_complete(record):
+                    status = "STL ready" if config.output_mode == "cadquery" and not dry_run else "complete"
+                else:
+                    status = "attempt failed"
                 print(
                     f"[{index}/{len(cells)}] {cell.model.name} {cell.seed_id} "
                     f"{cell.strategy.name} t={cell.temperature} r={cell.repetition} "

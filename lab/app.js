@@ -1,4 +1,4 @@
-const DEFAULT_CONFIG = "projects/wall-planter-cad-study/configs/family_sweep.yaml";
+const DEFAULT_CONFIG = "projects/wall-planter-cad-study/configs/morning_sweep.yaml";
 
 const configInput = document.querySelector("#config-path");
 const ollamaState = document.querySelector("#ollama-state");
@@ -221,7 +221,13 @@ function renderResults(results) {
     prompt.textContent = row.seed_text;
     const output = document.createElement("pre");
     output.textContent = row.error || row.output;
+    const failure = document.createElement("pre");
+    failure.className = "result-failure";
+    failure.textContent = row.render_error ? row.render_error.split("\n")[0] : "";
     item.append(summary, prompt, output);
+    if (row.render_error) {
+      item.appendChild(failure);
+    }
     resultsList.appendChild(item);
   }
 }
@@ -279,7 +285,13 @@ function renderResultsV2(results) {
     prompt.textContent = row.seed_text;
     const output = document.createElement("pre");
     output.textContent = row.error || row.output;
+    const failure = document.createElement("pre");
+    failure.className = "result-failure";
+    failure.textContent = row.render_error ? row.render_error.split("\n")[0] : "";
     item.append(summary, prompt, output);
+    if (row.render_error) {
+      item.appendChild(failure);
+    }
     resultsList.appendChild(item);
   }
 }

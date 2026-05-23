@@ -26,6 +26,16 @@ def test_pilot_local_config_loads() -> None:
     assert config.seeds[0].text == "Make me a planter I can put on my wall."
 
 
+def test_morning_sweep_config_loads() -> None:
+    config = load_config("projects/wall-planter-cad-study/configs/morning_sweep.yaml")
+    assert config.experiment_id == "wall_planter_morning_sweep"
+    assert config.output_mode == "cadquery"
+    assert len(config.models) == 10
+    assert len(config.seeds) == 10
+    assert config.sampling.repetitions == 2
+    assert config.sampling.max_attempts_per_cell == 5
+
+
 def test_missing_required_fields_raise_validation_error() -> None:
     with pytest.raises(ValidationError):
         ExperimentConfig.model_validate({"experiment_id": "bad"})

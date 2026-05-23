@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import math
 import re
 import traceback
 from pathlib import Path
@@ -17,23 +16,27 @@ Return only Python CadQuery code. Do not explain the design in prose.
 Hard requirements:
 - Use millimeters.
 - Use `import cadquery as cq`.
+- Do not use `from cadquery import ...`; all CadQuery calls should go through `cq`.
 - Define the final model in a variable named `result`.
 - `result` must be a CadQuery Workplane or Shape.
+- `result` must not be a string, filename, list, tuple, dict, or printed value.
 - Do not call `cq.exporters.export`; the harness exports STL and STEP after your code runs.
+- Do not call `print`, `show_object`, `display`, or viewer functions.
 - Do not read files, write files, use networking, shell commands, subprocesses, or external packages.
 - Do not use CadQuery string selectors such as `.vertices("[1:-1]")`; use explicit Workplanes and cuts.
 - Prefer simple, printable, watertight solids using boxes, cylinders, holes, cuts, unions, fillets, and chamfers.
 - Keep the model as a single 3D-printable object when the request asks for one.
 - If fillets fail on complex geometry, omit them instead of making invalid code.
 
-Use this style:
-import cadquery as cq
-
-outer = cq.Workplane("XY").circle(40).extrude(90)
-inner = cq.Workplane("XY").workplane(offset=3).circle(37).extrude(88)
-body = outer.cut(inner)
-back = cq.Workplane("XY").box(90, 4, 100).translate((0, 42, 50))
-result = body.union(back)
+CadQuery command reference:
+- Valid plane names are case-sensitive: "XY", "YZ", "ZX", "XZ", "YX", "ZY", "front", "back", "left", "right", "top", "bottom".
+- Minimal valid pattern: `import cadquery as cq` followed by `result = cq.Workplane("XY").box(10, 10, 10)`.
+- Start geometry with `cq.Workplane("XY")` or another valid plane.
+- Common solid operations: `.box(length, width, height)`, `.circle(radius)`, `.rect(xLen, yLen)`, `.extrude(distance)`, `.revolve(angleDegrees)`.
+- Common transforms and booleans: `.translate((x, y, z))`, `.rotate(axisStart, axisEnd, angleDegrees)`, `.union(other)`, `.cut(other)`, `.intersect(other)`.
+- Common workplane selection operations: `.faces(">Z")`, `.faces("<Z")`, `.workplane(offset=value)`, `.center(x, y)`, `.hole(diameter)`.
+- Common edge operations: `.edges(selector)`, `.fillet(radius)`, `.chamfer(distance)`.
+- Do not invent methods such as `.square()`, `.rectangle()`, `.top()`, or `.bottom()`.
 
 Design request:
 {design_prompt}
@@ -54,9 +57,13 @@ DISALLOWED_PATTERNS = (
     "from os",
     "import sys",
     "from sys",
+    "from cadquery",
     "exec(",
     "eval(",
     "exporters.export",
+    "print(",
+    "show_object",
+    "display(",
     "__",
     "os.",
     "sys.",
@@ -91,22 +98,8 @@ result = result.cut(key_round).cut(key_slot)
 def extract_code(output: str) -> str:
     match = BLOCK_RE.search(output)
     if match:
-        code = match.group(1)
-    else:
-        code = output
-    return sanitize_code(code)
-
-
-def sanitize_code(code: str) -> str:
-    kept_lines = []
-    for line in code.strip().splitlines():
-        stripped = line.strip()
-        if "cq.exporters.export" in stripped:
-            continue
-        if stripped.startswith("show_object(") or stripped.startswith("print("):
-            continue
-        kept_lines.append(line)
-    return "\n".join(kept_lines).strip() + "\n"
+        return match.group(1).strip() + "\n"
+    return output.strip() + "\n"
 
 
 def safe_slug(value: str, *, max_length: int = 80) -> str:
@@ -137,8 +130,6 @@ def export_cadquery_code(code: str, stl_path: Path, step_path: Path) -> None:
     import cadquery as cq  # noqa: PLC0415 - optional heavy CAD dependency.
 
     namespace: dict[str, Any] = {
-        "cq": cq,
-        "math": math,
         "__builtins__": {
             "__import__": __import__,
             "abs": abs,

@@ -68,12 +68,12 @@ model-generated CAD artifacts to the same viewer.
 ## CAD-Code Runs and Review
 
 For the wall-planter study,
-`projects/wall-planter-cad-study/configs/family_sweep.yaml` uses
+`projects/wall-planter-cad-study/configs/morning_sweep.yaml` uses
 `output_mode: cadquery`. The runner wraps each seed prompt with a CadQuery code
 instruction prompt, sends that to Ollama, extracts the returned Python code,
 and stores each attempt in its own artifact folder under the numbered run
 directory, for example
-`workspace/runs/wall_planter_family_sweep_001/artifacts/`.
+`workspace/runs/wall_planter_morning_sweep_001/artifacts/`.
 
 Each folder keeps the full prompt sent to the model, the original seed prompt,
 the raw model output, extracted `model.py`, metadata, and, when rendering
@@ -81,6 +81,10 @@ succeeds, `model.stl` and `model.step`. The JSONL row stores provider, model,
 prompt id, temperature, repetition, timings, token counts, artifact paths, and
 render errors. Earlier text-only outputs are archived separately in
 `workspace/archive/`.
+
+`morning_sweep.yaml` is the practical overnight profile: 10 prompts x 10 local
+models x 2 repetitions, with up to 5 saved attempts per condition. The larger
+`family_sweep.yaml` keeps the 5-repetition version for a longer paper-scale run.
 
 Open the lab and use `Review Products` after rows are generated. The review
 panel loads the generated STL in the 3D viewer, shows the CadQuery source code,
@@ -105,6 +109,11 @@ the runner tries the same model/prompt/temperature/repetition again until
 `sampling.max_attempts_per_cell` is reached. The attempt number is stored on
 every row, so the analysis spreadsheet can measure attempts-to-product.
 
+The model output is not repaired by the harness. The CAD prompt includes a
+neutral CadQuery command reference so models know valid method names and plane
+names, but generated source is evaluated as written. Invalid code remains a
+failed attempt in the dataset.
+
 While a run is active, use `Stop After Current` to pause the queue after the
 current Ollama generation finishes. Already-written JSONL rows and artifact
 folders are kept. If the lab or machine restarts during a numbered run, starting
@@ -125,7 +134,7 @@ step, not model training itself.
 Export all attempts to a spreadsheet-friendly CSV:
 
 ```bash
-cadybara export-csv workspace/runs/wall_planter_family_sweep_001/results.jsonl workspace/wall_planter_attempts.csv
+cadybara export-csv workspace/runs/wall_planter_morning_sweep_001/results.jsonl workspace/wall_planter_attempts.csv
 ```
 
 ## Local Lab and Model Cache
@@ -173,7 +182,7 @@ The lab defaults to `projects/wall-planter-cad-study/`, specifically the
 Qwen 2.5, Qwen 2.5 Coder, and Llama 3.2; ten seed prompts; one identity
 strategy; and five repetitions. Each click of `Start Real Run` creates a
 numbered folder such as
-`workspace/runs/wall_planter_family_sweep_001/` with `results.jsonl`,
+`workspace/runs/wall_planter_morning_sweep_001/` with `results.jsonl`,
 `config.yaml`, and generated CAD artifacts. Select `Real run` in the lab before
 starting real Ollama generations.
 

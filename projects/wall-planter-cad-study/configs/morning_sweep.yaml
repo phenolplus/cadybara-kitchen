@@ -1,8 +1,8 @@
-experiment_id: "wall_planter_family_sweep"
-output_path: "workspace/runs/wall_planter_family_sweep_manual/results.jsonl"
+experiment_id: "wall_planter_morning_sweep"
+output_path: "workspace/runs/wall_planter_morning_sweep_manual/results.jsonl"
 output_mode: "cadquery"
 prompt_revision: "cadquery_reference_v3"
-artifact_root: "workspace/runs/wall_planter_family_sweep_manual/artifacts"
+artifact_root: "workspace/runs/wall_planter_morning_sweep_manual/artifacts"
 models:
   - name: "qwen2.5:0.5b"
     provider: "ollama"
@@ -109,6 +109,6 @@ strategies:
   - name: "identity"
 sampling:
   temperatures: [0.7]
-  repetitions: 5
-  max_tokens: 2048
-  max_attempts_per_cell: 10
+  repetitions: 2
+  max_tokens: 1024
+  max_attempts_per_cell: 5

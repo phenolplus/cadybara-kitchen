@@ -1,6 +1,7 @@
 experiment_id: "wall_planter_fast_retry_smoke"
 output_path: "workspace/runs/wall_planter_fast_retry_smoke_manual/results.jsonl"
 output_mode: "cadquery"
+prompt_revision: "cadquery_reference_v3"
 artifact_root: "workspace/runs/wall_planter_fast_retry_smoke_manual/artifacts"
 models:
   - name: "qwen2.5-coder:0.5b"

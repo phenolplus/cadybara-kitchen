@@ -15,6 +15,7 @@ class ModelConfig(BaseModel):
     name: str
     provider: str
     base_url: str
+    timeout_seconds: float = Field(default=180.0, gt=0)
 
 
 class SeedConfig(BaseModel):
@@ -46,6 +47,7 @@ class ExperimentConfig(BaseModel):
     experiment_id: str
     output_path: str
     output_mode: Literal["text", "cadquery"] = "text"
+    prompt_revision: str = "cadquery_reference_v3"
     artifact_root: str | None = None
     models: list[ModelConfig] = Field(min_length=1)
     seeds: list[SeedConfig] = Field(min_length=1)

@@ -25,27 +25,35 @@ code that the harness converts into STL/STEP products for 3D review.
 Use this config:
 
 ```text
-projects/wall-planter-cad-study/configs/family_sweep.yaml
+projects/wall-planter-cad-study/configs/morning_sweep.yaml
 ```
 
 Current design:
 
 ```text
-10 prompts x 10 models x 5 repetitions x 1 temperature = 500 generations
+10 prompts x 10 models x 2 repetitions x 1 temperature = 200 product conditions
 ```
 
-Each generation condition can make up to 10 attempts. Bad CadQuery code is not
+Each generation condition can make up to 5 attempts. Bad CadQuery code is not
 treated as a finished product; each failed attempt is saved, then the same
 model/prompt/temperature/repetition is tried again until an STL renders or the
 attempt cap is reached. This makes attempts-to-product available as a measured
 outcome in the final spreadsheet.
 
+For a longer paper-scale run, use `configs/family_sweep.yaml`, which keeps the
+same prompt/model ladder but uses 5 repetitions and up to 10 attempts.
+
+The harness does not repair the model's source code. The prompt gives a compact
+CadQuery command reference, then the returned code is executed as written. This
+keeps failures attributable to the model instead of the harness quietly fixing
+them.
+
 Each run creates a numbered folder:
 
 ```text
-workspace/runs/wall_planter_family_sweep_001/
-workspace/runs/wall_planter_family_sweep_002/
-workspace/runs/wall_planter_family_sweep_003/
+workspace/runs/wall_planter_morning_sweep_001/
+workspace/runs/wall_planter_morning_sweep_002/
+workspace/runs/wall_planter_morning_sweep_003/
 ```
 
 Each numbered folder contains:
@@ -86,7 +94,7 @@ complete, the next start creates the next numbered folder.
 Headless:
 
 ```powershell
-cadybara run projects/wall-planter-cad-study/configs/family_sweep.yaml
+cadybara run projects/wall-planter-cad-study/configs/morning_sweep.yaml
 ```
 
 ## Review
@@ -103,7 +111,7 @@ workspace/reviews/<experiment_id>_reviews.jsonl
 Export the large attempt table to CSV:
 
 ```powershell
-cadybara export-csv workspace/runs/wall_planter_family_sweep_001/results.jsonl workspace/wall_planter_attempts.csv
+cadybara export-csv workspace/runs/wall_planter_morning_sweep_001/results.jsonl workspace/wall_planter_attempts.csv
 ```
 
 ## Worker Computer

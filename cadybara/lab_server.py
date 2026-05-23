@@ -15,6 +15,7 @@ import yaml
 
 from cadybara.config import ExperimentConfig, config_hash
 from cadybara.config import load_config
+from cadybara.csv_export import export_attempts_csv
 from cadybara.model_queue import (
     DEFAULT_MODEL_QUEUE_PATH,
     DEFAULT_MODEL_STATE_PATH,
@@ -28,7 +29,7 @@ from cadybara.reviews import append_score, review_items, review_path
 from cadybara.records import resume_key
 from cadybara.runner import read_jsonl_records, record_is_complete, run_config
 
-DEFAULT_PROJECT_CONFIG = "projects/wall-planter-cad-study/configs/family_sweep.yaml"
+DEFAULT_PROJECT_CONFIG = "projects/wall-planter-cad-study/configs/morning_sweep.yaml"
 
 
 @dataclass(frozen=True)
@@ -150,10 +151,21 @@ class LabState:
                             should_stop=self.stop_event.is_set,
                             stream=self.run_job,
                         )
+                    csv_path = Path(target_path).with_name(
+                        "attempts.practice.csv" if dry_run else "attempts.csv"
+                    )
+                    rows, malformed = export_attempts_csv(Path(target_path), csv_path)
+                    self.run_job.write(
+                        f"Wrote attempt CSV: {csv_path} "
+                        f"(rows={rows}, malformed={malformed})"
+                    )
                     self.run_job.set_status("stopped" if self.stop_event.is_set() else "done")
                 except Exception as exc:  # noqa: BLE001 - lab reports failures in UI.
                     self.run_job.write(f"Error: {exc}")
                     self.run_job.set_status("error")
+                finally:
+                    with self.lock:
+                        self.active_run_config = None
 
             self.run_thread = threading.Thread(target=target, daemon=True)
             self.run_thread.start()
@@ -193,8 +205,13 @@ class LabState:
 
     def display_config(self, config_path: Path) -> ExperimentConfig:
         with self.lock:
-            if self.active_run_config is not None:
+            if (
+                self.active_run_config is not None
+                and self.run_thread is not None
+                and self.run_thread.is_alive()
+            ):
                 return self.active_run_config
+            self.active_run_config = None
         return assign_numbered_run_config(load_config(config_path), create=False)
 
 
@@ -222,18 +239,20 @@ def assign_numbered_run_config(config: ExperimentConfig, *, create: bool = True)
     root = Path("workspace") / "runs"
     root.mkdir(parents=True, exist_ok=True)
     index = 1
+    current_hash = config_hash(config)
     if not create:
         existing = sorted(root.glob(f"{base_id}_[0-9][0-9][0-9]"))
-        if existing:
-            run_id = existing[-1].name
-            run_dir = existing[-1]
-            return config.model_copy(
+        for run_dir in reversed(existing):
+            candidate = config.model_copy(
                 update={
-                    "experiment_id": run_id,
+                    "experiment_id": run_dir.name,
                     "output_path": str(run_dir / "results.jsonl"),
                     "artifact_root": str(run_dir / "artifacts"),
                 }
             )
+            rows = read_jsonl_records(Path(candidate.output_path))
+            if not rows.records or all(record.config_hash == current_hash for record in rows.records):
+                return candidate
     while (root / f"{base_id}_{index:03d}").exists():
         index += 1
     run_id = f"{base_id}_{index:03d}"
@@ -383,6 +402,11 @@ def make_handler(state: LabState):
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()
             self.wfile.write(body)
+
+        def end_headers(self) -> None:
+            self.send_header("Cache-Control", "no-store, max-age=0")
+            self.send_header("Pragma", "no-cache")
+            super().end_headers()
 
         def do_GET(self) -> None:
             parsed = urlparse(self.path)
