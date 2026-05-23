@@ -173,7 +173,7 @@ function renderExperimentProgress() {
   runExplain.textContent = generationLabel;
   pilotSummary.textContent = `${exp.seed_count} planter prompts`;
   const completedCells = selected.completed_cells ?? selected.valid_rows;
-  progressText.textContent = `${completedCells}/${exp.total_cells} products - ${selected.valid_rows} attempts`;
+  progressText.textContent = `${completedCells}/${exp.total_cells} rendered STLs - ${selected.valid_rows} attempts`;
   progressPercent.textContent = `${selected.complete_percent}%`;
   progressFill.style.width = `${selected.complete_percent}%`;
   outputPath.textContent = selected.output_path;
@@ -248,10 +248,10 @@ function renderResultsV2(results) {
   const failedCount = latestReviewPayload?.render_failed_rows ?? 0;
   resultsSummary.textContent = `${results.valid_rows} ${dryRun ? "practice" : "real"} row${
     results.valid_rows === 1 ? "" : "s"
-  } - ${renderableCount} products ready, ${failedCount} code failures`;
+  } - ${renderableCount} rendered STLs, ${failedCount} code failures`;
   if (reviewProducts) {
     reviewProducts.disabled = dryRun || renderableCount === 0;
-    reviewProducts.textContent = renderableCount > 0 ? `Review Products (${renderableCount})` : "No Products Yet";
+    reviewProducts.textContent = renderableCount > 0 ? `Review STLs (${renderableCount})` : "No STLs Yet";
   }
   if (results.rows.length === 0) {
     const empty = document.createElement("p");
@@ -273,7 +273,7 @@ function renderResultsV2(results) {
     if (row.error) {
       meta.textContent = "provider error";
     } else if (row.is_renderable) {
-      meta.textContent = `STL ready - ${row.latency_ms} ms`;
+      meta.textContent = `STL exported - ${row.latency_ms} ms`;
     } else if (row.render_error) {
       meta.textContent = `code failed - ${row.latency_ms} ms`;
     } else {
@@ -332,7 +332,7 @@ async function renderReview() {
     ["Latency", `${item.latency_ms} ms`],
     ["Tokens", `${item.prompt_tokens ?? "?"} in / ${item.completion_tokens ?? "?"} out`],
     ["Attempt", `${item.attempt ?? 1}`],
-    ["Render", item.render_error ? "failed; code is still saved" : "STL ready"],
+    ["Render", item.render_error ? "failed; code is still saved" : "code executed; STL exported"],
     ["Score", item.review?.score ? `${item.review.score}/10` : "not scored"],
   ];
   for (const [label, value] of fields) {
@@ -367,7 +367,7 @@ async function openReview() {
   const payload = await loadReviewItems();
   reviewPanel.classList.remove("hidden");
   if (reviewItems.length === 0) {
-    reviewTitle.textContent = "No products ready yet";
+    reviewTitle.textContent = "No rendered STLs yet";
     reviewSubtitle.textContent =
       payload.valid_rows > 0
         ? `${payload.render_failed_rows || 0} rows produced CAD code that did not render yet. The code is still saved in the run folder.`
@@ -418,11 +418,11 @@ async function refreshResults() {
 
 async function refreshReviewSummary() {
   if (dryRun || !reviewProducts) {
-    latestReviewPayload = null;
-    if (reviewProducts) {
-      reviewProducts.disabled = true;
-      reviewProducts.textContent = "Review Products";
-    }
+      latestReviewPayload = null;
+      if (reviewProducts) {
+        reviewProducts.disabled = true;
+        reviewProducts.textContent = "Review STLs";
+      }
     return;
   }
   try {

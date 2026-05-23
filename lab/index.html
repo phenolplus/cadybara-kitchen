@@ -12,7 +12,7 @@
         <div>
           <p class="eyebrow">Local CAD prompt lab</p>
           <h1>Wall planter prompts are loaded.</h1>
-          <p>Your 10-step prompt ladder is wired in. Real runs ask local models for CadQuery code, export STL/STEP, and save reviewable products.</p>
+          <p>Your 10-step prompt ladder is wired in. Real runs ask local models for CadQuery code, export STL/STEP, and save reviewable meshes.</p>
         </div>
         <a class="secondary-link" href="/viewer/?artifact=/workspace/sample_part.json">Open 3D Viewer</a>
       </section>
@@ -78,7 +78,7 @@
           </div>
           <div class="panel-actions">
             <span id="results-summary">Checking</span>
-            <button id="review-products" type="button">Review Products</button>
+            <button id="review-products" type="button">Review STLs</button>
           </div>
         </div>
         <div id="results-list" class="results-list"></div>
@@ -88,7 +88,7 @@
         <div class="review-top">
           <div>
             <p class="eyebrow">Manual scoring</p>
-            <h2 id="review-title">Review products</h2>
+            <h2 id="review-title">Review STLs</h2>
             <p id="review-subtitle" class="muted">Use keys 1-9, or 0 for 10. Scores are appended to JSONL.</p>
           </div>
           <button id="close-review" type="button">Close</button>
