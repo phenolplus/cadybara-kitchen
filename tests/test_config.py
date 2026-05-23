@@ -33,7 +33,7 @@ def test_morning_sweep_config_loads() -> None:
     assert len(config.models) == 10
     assert len(config.seeds) == 10
     assert config.sampling.repetitions == 2
-    assert config.sampling.max_attempts_per_cell == 5
+    assert config.sampling.max_attempts_per_cell == 2
 
 
 def test_missing_required_fields_raise_validation_error() -> None:

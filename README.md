@@ -83,7 +83,7 @@ render errors. Earlier text-only outputs are archived separately in
 `workspace/archive/`.
 
 `morning_sweep.yaml` is the practical overnight profile: 10 prompts x 10 local
-models x 2 repetitions, with up to 5 saved attempts per condition. The larger
+models x 2 repetitions, with up to 2 saved attempts per condition. The larger
 `family_sweep.yaml` keeps the 5-repetition version for a longer paper-scale run.
 
 Open the lab and use `Review Products` after rows are generated. The review

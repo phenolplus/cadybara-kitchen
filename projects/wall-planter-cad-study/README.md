@@ -34,7 +34,7 @@ Current design:
 10 prompts x 10 models x 2 repetitions x 1 temperature = 200 product conditions
 ```
 
-Each generation condition can make up to 5 attempts. Bad CadQuery code is not
+Each generation condition can make up to 2 attempts. Bad CadQuery code is not
 treated as a finished product; each failed attempt is saved, then the same
 model/prompt/temperature/repetition is tried again until an STL renders or the
 attempt cap is reached. This makes attempts-to-product available as a measured
