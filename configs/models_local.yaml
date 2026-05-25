@@ -1,0 +1,73 @@
+storage_budget_gb: 120
+prefetch_threshold: 0.8
+models:
+  - name: "qwen2.5:0.5b"
+    family: "qwen2.5"
+    role: "pilot-fast"
+    priority: 10
+    estimated_size_gb: 0.4
+  - name: "qwen2.5:1.5b"
+    family: "qwen2.5"
+    role: "pilot-better"
+    priority: 20
+    estimated_size_gb: 1.0
+  - name: "qwen2.5:3b"
+    family: "qwen2.5"
+    role: "pilot-main"
+    priority: 30
+    estimated_size_gb: 2.0
+  - name: "qwen2.5:7b"
+    family: "qwen2.5"
+    role: "best-general-local"
+    priority: 40
+    estimated_size_gb: 5.0
+  - name: "qwen2.5-coder:0.5b"
+    family: "qwen2.5-coder"
+    role: "cad-code-fast"
+    priority: 50
+    estimated_size_gb: 0.4
+  - name: "qwen2.5-coder:1.5b"
+    family: "qwen2.5-coder"
+    role: "cad-code-small"
+    priority: 60
+    estimated_size_gb: 1.0
+  - name: "qwen2.5-coder:3b"
+    family: "qwen2.5-coder"
+    role: "cad-code-main"
+    priority: 70
+    estimated_size_gb: 2.0
+  - name: "qwen2.5-coder:7b"
+    family: "qwen2.5-coder"
+    role: "best-cad-code-local"
+    priority: 80
+    estimated_size_gb: 5.0
+  - name: "llama3.2:1b"
+    family: "llama3.2"
+    role: "cross-family-small"
+    priority: 90
+    estimated_size_gb: 1.3
+  - name: "llama3.2:3b"
+    family: "llama3.2"
+    role: "cross-family-main"
+    priority: 100
+    estimated_size_gb: 2.0
+  - name: "gemma3:1b"
+    family: "gemma3"
+    role: "cross-family-small"
+    priority: 110
+    estimated_size_gb: 0.8
+  - name: "gemma3:4b"
+    family: "gemma3"
+    role: "cross-family-main"
+    priority: 120
+    estimated_size_gb: 3.3
+  - name: "phi3:mini"
+    family: "phi3"
+    role: "cross-family-reasoning"
+    priority: 130
+    estimated_size_gb: 2.3
+  - name: "mistral:7b"
+    family: "mistral"
+    role: "cross-family-general"
+    priority: 140
+    estimated_size_gb: 4.1

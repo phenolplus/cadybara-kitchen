@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>cadybara Lab</title>
+    <link rel="stylesheet" href="./styles.css?v=morning1" />
+  </head>
+  <body>
+    <main>
+      <section class="hero">
+        <div>
+          <p class="eyebrow">Local CAD prompt lab</p>
+          <h1>Wall planter prompts are loaded.</h1>
+          <p>Your 10-step prompt ladder is wired in. Real runs ask local models for CadQuery code, export STL/STEP, and save reviewable meshes.</p>
+        </div>
+        <a class="secondary-link" href="/viewer/?artifact=/workspace/sample_part.json">Open 3D Viewer</a>
+      </section>
+
+      <section class="start-panel">
+        <div class="status-strip">
+          <div>
+            <span class="label">Ollama</span>
+            <strong id="ollama-state">Checking</strong>
+          </div>
+          <div>
+            <span class="label">Models</span>
+            <strong id="model-summary">Checking</strong>
+          </div>
+          <div>
+            <span class="label">Prompt Set</span>
+            <strong id="pilot-summary">Checking</strong>
+          </div>
+        </div>
+
+        <div class="run-card">
+          <div>
+            <p class="eyebrow">Step 1</p>
+            <h2>Pick the kind of run</h2>
+            <div class="mode-buttons" role="group" aria-label="Run mode">
+              <button id="mode-dry" class="mode-button" type="button">
+                Practice run
+                <span>No model calls</span>
+              </button>
+              <button id="mode-real" class="mode-button active" type="button">
+                Real run
+                <span>Uses local Ollama</span>
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <p class="eyebrow">Step 2</p>
+            <h2 id="run-title">Run the planter pilot</h2>
+            <p id="run-explain" class="muted">Uses the 10 wall-planter prompts.</p>
+            <p class="prompt-note">Family sweep: prompt detail level x model family/size x repetition.</p>
+            <div class="run-buttons">
+              <button id="start-run" class="start-button real" type="button">Start Real Run</button>
+              <button id="stop-run" class="stop-button" type="button" disabled>Stop After Current</button>
+            </div>
+            <div class="progress-wrap">
+              <div class="progress-head">
+                <span id="progress-text">0/90 rows</span>
+                <span id="progress-percent">0%</span>
+              </div>
+              <div class="progress-bar"><div id="progress-fill"></div></div>
+              <p id="output-path" class="muted">workspace/runs/wall_planter_morning_sweep_001/results.jsonl</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel results-panel">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">Stored JSONL</p>
+            <h2>Recent saved outputs</h2>
+          </div>
+          <div class="panel-actions">
+            <span id="results-summary">Checking</span>
+            <button id="review-products" type="button">Review STLs</button>
+          </div>
+        </div>
+        <div id="results-list" class="results-list"></div>
+      </section>
+
+      <section id="review-panel" class="review-panel hidden">
+        <div class="review-top">
+          <div>
+            <p class="eyebrow">Manual scoring</p>
+            <h2 id="review-title">Review STLs</h2>
+            <p id="review-subtitle" class="muted">Use keys 1-9, or 0 for 10. Scores are appended to JSONL.</p>
+          </div>
+          <button id="close-review" type="button">Close</button>
+        </div>
+        <div class="review-layout">
+          <div class="review-viewer">
+            <iframe id="review-frame" title="Generated CAD viewer"></iframe>
+          </div>
+          <aside class="review-side">
+            <div class="review-nav">
+              <button id="prev-review" type="button">Previous</button>
+              <span id="review-position">0 / 0</span>
+              <button id="next-review" type="button">Next</button>
+            </div>
+            <div id="review-meta" class="review-meta"></div>
+            <div id="score-buttons" class="score-buttons"></div>
+            <details open>
+              <summary>
+                <span>CadQuery code</span>
+                <span id="code-status">Loading</span>
+              </summary>
+              <pre id="review-code"></pre>
+            </details>
+          </aside>
+        </div>
+      </section>
+
+      <details class="panel" id="models-details">
+        <summary>
+          <span>Model cache details</span>
+          <span id="model-detail-summary">Show installed models</span>
+        </summary>
+        <div class="button-row compact">
+          <button id="pull-one" type="button">Pull Next Missing</button>
+          <button id="pull-all" type="button">Pull Full Queue</button>
+          <button id="refresh" type="button">Refresh</button>
+        </div>
+        <div id="model-list" class="model-list"></div>
+      </details>
+
+      <details class="panel">
+        <summary>
+          <span>Advanced settings and logs</span>
+          <span>Config, run log, model log</span>
+        </summary>
+        <label>
+          Config path
+          <input id="config-path" value="projects/wall-planter-cad-study/configs/morning_sweep.yaml" autocomplete="off" />
+        </label>
+        <div class="log-grid">
+          <section>
+            <h3>Run Log</h3>
+            <pre id="run-log"></pre>
+          </section>
+          <section>
+            <h3>Model Log</h3>
+            <pre id="model-log"></pre>
+          </section>
+        </div>
+      </details>
+    </main>
+    <script type="module" src="./app.js?v=morning1"></script>
+  </body>
+</html>

@@ -1,0 +1,41 @@
+from __future__ import annotations
+
+from pathlib import Path
+
+import pytest
+from pydantic import ValidationError
+
+from cadybara.config import ExperimentConfig, config_hash, load_config
+
+
+def test_valid_yaml_loads(tiny_config_path: Path) -> None:
+    config = load_config(tiny_config_path)
+    assert config.experiment_id == "tiny"
+    assert config.models[0].name == "model_a"
+    assert config.sampling.repetitions == 2
+    assert config_hash(config) == config_hash(config)
+
+
+def test_pilot_local_config_loads() -> None:
+    config = load_config("projects/wall-planter-cad-study/configs/family_sweep.yaml")
+    assert config.experiment_id == "wall_planter_family_sweep"
+    assert config.output_mode == "cadquery"
+    assert len(config.models) == 10
+    assert len(config.seeds) == 10
+    assert config.sampling.repetitions == 5
+    assert config.seeds[0].text == "Make me a planter I can put on my wall."
+
+
+def test_morning_sweep_config_loads() -> None:
+    config = load_config("projects/wall-planter-cad-study/configs/morning_sweep.yaml")
+    assert config.experiment_id == "wall_planter_morning_sweep"
+    assert config.output_mode == "cadquery"
+    assert len(config.models) == 10
+    assert len(config.seeds) == 10
+    assert config.sampling.repetitions == 2
+    assert config.sampling.max_attempts_per_cell == 2
+
+
+def test_missing_required_fields_raise_validation_error() -> None:
+    with pytest.raises(ValidationError):
+        ExperimentConfig.model_validate({"experiment_id": "bad"})

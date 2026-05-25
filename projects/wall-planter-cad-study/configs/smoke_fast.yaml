@@ -1,0 +1,24 @@
+experiment_id: "wall_planter_fast_retry_smoke"
+output_path: "workspace/runs/wall_planter_fast_retry_smoke_manual/results.jsonl"
+output_mode: "cadquery"
+prompt_revision: "cadquery_reference_v3"
+artifact_root: "workspace/runs/wall_planter_fast_retry_smoke_manual/artifacts"
+models:
+  - name: "qwen2.5-coder:0.5b"
+    provider: "ollama"
+    base_url: "http://localhost:11434"
+seeds:
+  - id: "planter_006_dimensions"
+    text: "Design a cylindrical wall-mounted planter roughly 90 mm tall and 80 mm in diameter, open at the top, with a flat back that hangs against the wall using a single screw through a mounting hole."
+    metadata:
+      domain: "cad"
+      object: "wall_planter"
+      prompt_level: 6
+      detail: "approximate_dimensions"
+strategies:
+  - name: "identity"
+sampling:
+  temperatures: [0.7]
+  repetitions: 1
+  max_tokens: 768
+  max_attempts_per_cell: 3
