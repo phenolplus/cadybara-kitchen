@@ -1,0 +1,37 @@
+experiment_id: "wall_planter_kaggle_heavy_vision_repair_001"
+output_path: "/kaggle/working/cadybara_outputs/wall_planter_kaggle_heavy_vision_repair_001/results.jsonl"
+artifact_root: "/kaggle/working/cadybara_outputs/wall_planter_kaggle_heavy_vision_repair_001/artifacts"
+
+# Heavy remote-only vision sweep. Every model here must accept image input,
+# because repair rounds 2 and 3 send the previous render PNG back to the model.
+# Run one model per Kaggle notebook/session with KAGGLE_MODEL_NAMES so downloads,
+# failures, and outputs are isolated.
+models:
+  - { name: "qwen3-vl:32b",          provider: "ollama", base_url: "http://localhost:11434", family: "qwen3-vl",         params_b: 32,   vision: true, disk_gb: 22, timeout_seconds: 7200 }
+  - { name: "qwen3-vl:30b-a3b-instruct", provider: "ollama", base_url: "http://localhost:11434", family: "qwen3-vl",     params_b: 30,   vision: true, disk_gb: 20, timeout_seconds: 7200 }
+  - { name: "qwen2.5vl:32b",         provider: "ollama", base_url: "http://localhost:11434", family: "qwen2.5-vl",       params_b: 32,   vision: true, disk_gb: 22, timeout_seconds: 7200 }
+  - { name: "gemma3:27b",            provider: "ollama", base_url: "http://localhost:11434", family: "gemma3",           params_b: 27,   vision: true, disk_gb: 17, timeout_seconds: 7200 }
+  - { name: "llava:34b",             provider: "ollama", base_url: "http://localhost:11434", family: "llava",            params_b: 34,   vision: true, disk_gb: 20, timeout_seconds: 7200 }
+  - { name: "llama3.2-vision:90b",   provider: "ollama", base_url: "http://localhost:11434", family: "llama3.2-vision",  params_b: 88.6, vision: true, disk_gb: 55, timeout_seconds: 10800 }
+  - { name: "llama3.2-vision:11b",   provider: "ollama", base_url: "http://localhost:11434", family: "llama3.2-vision",  params_b: 11,   vision: true, disk_gb: 8,  timeout_seconds: 7200 }
+
+prompts_file: "projects/wall-planter-cad-study/prompts/planter_prompts.yaml"
+
+strategies:
+  - { name: "identity" }
+
+sampling:
+  temperatures: [0.2]
+  repetitions: 2
+  max_tokens: 4096
+  max_attempts_per_cell: 1
+
+cad:
+  enabled: true
+  max_attempts_per_cell: 1
+
+repair:
+  enabled: true
+  rounds: 3
+  feedback: "render_png"
+  always_run_all_rounds: true

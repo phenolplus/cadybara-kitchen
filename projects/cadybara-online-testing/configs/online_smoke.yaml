@@ -1,0 +1,24 @@
+experiment_id: "cadybara_online_smoke"
+output_path: "projects/cadybara-online-testing/workspace/runs/cadybara_online_smoke_manual/results.jsonl"
+output_mode: "cadquery"
+prompt_revision: "cadquery_reference_v3"
+artifact_root: "projects/cadybara-online-testing/workspace/runs/cadybara_online_smoke_manual/artifacts"
+models:
+  - name: "qwen2.5-coder:0.5b"
+    provider: "ollama"
+    base_url: "http://localhost:11434"
+    family: "qwen2.5-coder"
+seeds:
+  - id: "cad_smoke_phone_stand"
+    text: "Create a simple 3D-printable phone stand with a flat base, an angled back support, and a front lip."
+    metadata:
+      domain: "cad"
+      object: "phone_stand"
+      specificity_level: 3
+strategies:
+  - name: "identity"
+sampling:
+  temperatures: [0.2]
+  repetitions: 1
+  max_tokens: 1024
+  max_attempts_per_cell: 2

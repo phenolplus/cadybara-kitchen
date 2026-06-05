@@ -1,740 +1,235 @@
-# Senior Dev Handoff: cadybara-kitchen
+# Senior Dev Handoff: Cadybara
 
-Prepared as an engineering handoff for a senior technical lead.
+Prepared as a current engineering handoff for the active repository. This file
+intentionally replaces older documentation-only, React/FastAPI/SQLite guidance.
+The live project is a local-first Python/CadQuery/JSONL research workspace with
+a small vanilla browser lab.
 
-## 1. Executive Summary
+## Executive Summary
 
-`cadybara-kitchen` is intended to become a research framework for studying how prompt wording affects AI-generated CAD model quality.
+Cadybara is a local AI-CAD research system. It currently has two active
+research directions:
 
-The core research question is:
+1. The M1/M2 local runner: compare CAD-generating model behavior across prompts,
+   models, repetitions, and review/grade flows.
+2. CAD diffusion: train a CAD-native token denoising model over simple sketch
+   and extrude programs.
 
-> When two prompts mean the same thing, do AI-CAD systems generate equivalent geometry?
+The repository has already moved past the original bootstrap docs. There is a
+runnable CLI, tests, a local HTTP lab server, static UI pages, CadQuery artifact
+export, append-only JSONL records, model-pull helpers, review/grade flows, and
+CAD diffusion training endpoints.
 
-The second major question is:
+The locked stack is:
 
-> When a short CAD prompt is expanded into a more detailed engineering specification, which expansions improve output quality and which make it worse?
+- Python 3.11+
+- Typer CLI
+- Pydantic v2 config/records
+- CadQuery for CAD execution/export
+- JSONL for run, review, grade, and sample records
+- Python `http.server` for the local lab API
+- vanilla HTML/CSS/JS for the UI
+- optional PyTorch for CAD diffusion only
 
-Current state: the repository is documentation-only. There is no runnable application, no CLI, no backend, no frontend, no tests, no package manifests, and no source directories yet. The repo currently functions as a project specification and bootstrap design document.
+Do not introduce FastAPI, SQLAlchemy, React, Vue, or a frontend build step
+unless Arvin explicitly changes direction.
 
-The intended deliverable is not just a paper. The docs describe a real software system: a local research workspace with a frontend, backend API, reusable Python analysis modules, CLI, SQLite database, and published JSON experiment outputs.
+## Current Layout
 
-## 2. Current Repository State
+Active projects:
 
-Local checkout:
+- `projects/local-running/`
+  - importable `cadybara` package and CLI
+  - config loading, deterministic runner, Ollama/dry-run providers
+  - CadQuery artifact export
+  - model queue and worker scripts
+  - local tests
+- `projects/cad-diffusion/`
+  - `cadybara_cad_diffusion` package
+  - v0 CAD program schema and token grammar
+  - Fusion-style dataset prep
+  - PyTorch denoising training
+  - sampling, CadQuery compilation, evaluation
+  - detailed handoff in `projects/cad-diffusion/HANDOFF.md`
+- `projects/cadybara-online-testing/`
+  - local lab server/API
+  - background run/model/CAD-training jobs
+  - progress, review, and grading helpers
+  - endpoint tests
+- `projects/website/`
+  - static landing/dashboard/CAD-diffusion UI
+  - Three.js viewer
+  - assets and local UI logs
+- `projects/_parked-not-active/`
+  - preserved old wall-planter data, Kaggle experiments, sandbox archives, and
+    obsolete design docs
 
-- Remote: `https://github.com/phenolplus/cadybara-kitchen.git`
-- Branch: `main`
-- Current commit at checkout time: `0b0c534`
-- Current tracked files:
-  - `.gitignore`
-  - `README.md`
-  - `PROJECT.md`
-  - `DESIGN.md`
-  - `LICENSE`
-  - `CLA.md`
+Packaging currently includes three Python packages from `pyproject.toml`:
 
-Important status note:
+- `projects/local-running/cadybara`
+- `projects/cad-diffusion/cadybara_cad_diffusion`
+- `projects/cadybara-online-testing/cadybara_online_testing`
 
-- No implementation exists yet.
-- No `frontend/`, `backend/`, `analysis/`, `cli/`, `database/`, `tests/`, or `published/` directories exist yet.
-- No `package.json`, `pyproject.toml`, `requirements.txt`, lockfile, or test config exists yet.
-- The docs define the target architecture and first milestone.
+## Repository Rules That Matter
 
-Small documentation issue:
+- Runs, reviews, grades, pull manifests, and CAD diffusion samples are
+  append-only JSONL.
+- Config hashes intentionally protect run files from accidental mixed regimes.
+- Failed model output is data. Invalid CadQuery, missing `result`, unsupported
+  CAD programs, parse failures, compile failures, and render failures should be
+  recorded, not repaired.
+- Generated workspace data is ignored but valuable. Do not delete or rewrite it
+  without an explicit request.
+- Parked data is history. Do not let old sandbox docs steer new work.
 
-- `README.md` refers to `LICENSE.md`, but the actual license file is named `LICENSE`.
-- `README.md` contains a typo: `derivstive`.
+## Local Runner
 
-## 3. Product Intent
-
-The project studies prompt sensitivity in AI-CAD generation. The motivating issue is that AI-CAD systems can produce outputs that are close to user intent but wrong in subtle ways:
-
-- Incorrect dimensions
-- Broken symmetry
-- Missing features
-- Inconsistent spacing
-- Unexpected geometry additions
-- Different results from prompts that appear semantically equivalent
-
-The project is meant to answer whether model behavior is robust to prompt wording, and whether automatic prompt expansion can make CAD generation more reliable.
-
-The long-term vision is an automatic prompt optimizer:
-
-1. User writes a short prompt such as `Create a mounting bracket`.
-2. System expands it into a more precise internal engineering specification.
-3. CAD generation runs against the expanded specification.
-4. Geometry validation measures whether the output satisfied intent.
-5. Lessons from experiments become prompt design recommendations or optimizer rules.
-
-## 4. Research Phases
-
-### Phase 1: Equivalent Prompt Robustness
-
-Goal: determine whether equivalent wording changes generated CAD geometry.
-
-Example equivalent prompts:
-
-```text
-Create four equally spaced holes
-Create four evenly distributed holes
-Generate four holes with uniform spacing
-```
-
-Expected semantic meaning: identical.
-
-Possible observed result: different geometry.
-
-Documented mutation categories:
-
-- Synonyms, such as `equal` to `uniform`
-- Sentence restructuring
-- Unit conversion, such as `120 mm` to `12 cm` or inches
-- Context injection, such as adding application context
-- Noise insertion, such as adding subjective wording
-
-Expected Phase 1 deliverables:
-
-- `seed_prompts.json`
-- `mutation_engine.py`
-- Prompt robustness report
-
-### Phase 2: Prompt Expansion Sensitivity
-
-Goal: determine which expanded prompt formulations improve CAD output quality.
-
-Example seed prompt:
+The local runner takes a YAML config and expands it into deterministic run
+cells:
 
 ```text
-Create a mounting bracket
+models x prompt seeds x strategy variants x temperatures x repetitions
 ```
 
-Possible expanded prompts:
+It writes `RunRecord` rows to JSONL. For CadQuery mode, a cell is complete only
+when a valid STL artifact exists and there is no render error. Failed attempts
+can be followed by later attempts until `max_attempts_per_cell` is exhausted.
 
-```text
-Create a rectangular mounting bracket 100x50x4 mm with four equally spaced mounting holes.
-Create a compact mounting bracket for holding a small shelf.
-Create a symmetric bracket with rounded corners and four holes.
-```
+Important files:
 
-Documented expansion categories:
+- `projects/local-running/cadybara/config.py`
+- `projects/local-running/cadybara/runner.py`
+- `projects/local-running/cadybara/providers/`
+- `projects/local-running/cadybara/cadquery_runner.py`
+- `projects/local-running/tests/`
 
-- Dimension expansion
-- Functional expansion
-- Constraint expansion
-- Structural expansion
-- Style expansion
-
-Expected Phase 2 deliverables:
-
-- `expansion_taxonomy.json`
-- `expansion_generator.py`
-- Prompt expansion quality report
-
-### Phase 3: Understanding LLM Interpretation Behavior
-
-Goal: explain why semantically similar prompts produce different outputs.
-
-Documented prompt attributes to extract:
-
-- Prompt length
-- Token count
-- Constraint count
-- Dimension count
-- Feature count
-- Adjective count
-- Ordering
-- Units
-
-Expected outputs:
-
-- Correlation analysis
-- Recommended prompt structure
-- Prompt design guide
-
-## 5. Required MVP Architecture
-
-The bootstrap architecture in `DESIGN.md` is:
-
-```text
-Frontend UI
-  -> Backend API / Experiment Runner
-  -> Python Analysis Modules
-  -> SQLite Database
-  -> Published Experiment Files
-```
-
-External LLM and CAD systems are intentionally abstracted in the MVP.
-
-### Frontend
-
-Suggested implementation: React + TypeScript.
-
-Minimum pages:
-
-- `/experiments`
-- `/experiment/:id`
-- `/published`
-
-Responsibilities:
-
-- List experiments
-- Create experiments
-- Inspect seed prompts
-- Inspect generated prompt variants
-- View results
-- Publish experiment outputs
-
-### Backend
-
-Suggested implementation: FastAPI.
-
-Responsibilities:
-
-- Experiment CRUD
-- Prompt generation
-- Experiment execution
-- Database access
-- Invoke analysis modules
-- Publish experiment results
-
-Minimum documented endpoints:
-
-```text
-GET  /experiments
-POST /experiments
-GET  /experiments/{id}
-POST /experiments/{id}/generate
-POST /experiments/{id}/run
-GET  /experiments/{id}/results
-POST /experiments/{id}/publish
-```
-
-### Analysis Modules
-
-Purpose: reusable Python modules that can be called by both the backend and CLI.
-
-Required module capabilities:
-
-```python
-generate_mutations(prompt: str) -> list[PromptVariant]
-generate_expansions(prompt: str) -> list[PromptVariant]
-score_result(expected, actual) -> dict
-generate_report(experiment_id) -> dict
-```
-
-Important constraint:
-
-- Analysis modules must not depend on the frontend.
-
-### CLI
-
-Suggested implementation: Typer.
-
-Documented example commands:
+Useful commands:
 
 ```bash
-prompt-cli create-experiment
-prompt-cli run EXP001
-prompt-cli publish EXP001
-prompt-cli report EXP001
+cadybara run --dry-run projects/local-running/configs/example.yaml
+cadybara cad-smoke
+cadybara model-status
+cadybara pull-models --limit 1
 ```
 
-The first milestone also expects:
+## Lab And Website
+
+The lab server lives in online-testing and serves the static website:
 
 ```bash
-prompt-cli generate EXP001
+cadybara lab --host 127.0.0.1 --port 8788
 ```
 
-### Database
+Main URLs:
 
-Implementation: SQLite.
+- `http://127.0.0.1:8788/lab/`
+- `http://127.0.0.1:8788/lab/dashboard.html`
+- `http://127.0.0.1:8788/lab/cad-diffusion.html`
+- `http://127.0.0.1:8788/viewer/`
 
-Default path:
+Important CAD diffusion endpoints:
+
+- `GET /api/cad-diffusion/status`
+- `POST /api/cad-diffusion/train/start`
+- `POST /api/cad-diffusion/train/stop`
+
+The lab uses in-process background threads, not a distributed queue. Stop
+requests are cooperative: the current generation/training step may complete,
+then the job writes final state.
+
+## CAD Diffusion
+
+CAD diffusion is the most active forward-looking direction. Read
+`projects/cad-diffusion/HANDOFF.md` before touching it.
+
+Current v0 language:
+
+- millimeter units
+- rectangle/circle extrude operations
+- `new`, `join`, and `cut` modes
+- first op cannot be `cut`
+- strict `ENDOP` and `<EOS>` boundaries
+- `max_len = 256`
+
+Current default lab training target:
 
 ```text
-workspace/research.db
+projects/cad-diffusion/workspace/models/cad_diffusion_validity_20260602
 ```
 
-`workspace/` is ignored by Git and intended for local generated state.
+The prepared token dataset has been observed as:
 
-### Published Experiment Files
+- `2974` train examples
+- `737` test examples
+- `3711` supported total examples
 
-Purpose: stable experiment outputs that can be committed.
-
-Expected directory:
+During this handoff pass, I restarted the lab on port `8788`, resumed training
+from `checkpoint_step_011400.pt`, and observed this first fresh resumed
+checkpoint:
 
 ```text
-published/
+checkpoint_step_011425.pt
 ```
 
-Expected format: human-readable JSON.
+Do not assume that is still the latest; training may have moved far beyond it.
+Check disk and/or the lab status API.
 
-Example outputs:
+The research framing I recommend is:
 
 ```text
-published/robustness_hole_patterns.json
-published/bracket_expansion_study.json
-published/bracket_expansion.json
+generator -> hard validity gate -> discriminator/scorer -> guided selection
 ```
 
-## 6. Data Model
+For our system, the discriminator should begin as a transparent score vector:
+validity, CAD-likeness, usefulness, novelty, constraint satisfaction, and
+manufacturability. Start with validity, CAD-likeness, and novelty before adding
+text-prompt alignment.
 
-The design document defines five core entities.
+## Verification Snapshot
 
-### Experiment
-
-Represents a research study.
-
-Fields:
-
-- `id`
-- `name`
-- `description`
-- `type`
-- `status`
-- `created_at`
-- `updated_at`
-
-### Prompt
-
-Represents a seed prompt.
-
-Fields:
-
-- `id`
-- `text`
-- `category`
-- `metadata`
-
-### PromptVariant
-
-Represents a mutation or expansion.
-
-Fields:
-
-- `id`
-- `parent_prompt_id`
-- `experiment_id`
-- `variant_type`
-- `text`
-- `attributes`
-
-Variant type examples:
-
-- `synonym`
-- `reordered`
-- `unit_conversion`
-- `expansion_dimension`
-- `expansion_constraint`
-
-### Run
-
-Represents one execution of a prompt variant.
-
-Fields:
-
-- `id`
-- `experiment_id`
-- `prompt_variant_id`
-- `status`
-- `started_at`
-- `finished_at`
-
-### Result
-
-Stores output and metrics from a run.
-
-Fields:
-
-- `id`
-- `run_id`
-- `metrics`
-- `raw_output`
-
-The documented SQLite schema stores JSON-like fields as text.
-
-## 7. Quality and Evaluation Requirements
-
-The docs do not define a formal human qualitative rubric. They mostly describe metric-based evaluation.
-
-Documented geometry metrics:
-
-- Volume
-- Bounding dimensions
-- Surface area
-
-Documented constraint checks:
-
-- Hole count
-- Spacing
-- Symmetry
-- Dimensions
-
-Documented feature checks:
-
-- Fillets
-- Ribs
-- Patterns
-
-Documented expansion quality dimensions:
-
-- Accuracy, especially dimensions
-- Constraint satisfaction, especially spacing, symmetry, and feature count
-- Unexpected geometry, such as extra ribs, unexpected fillets, or missing holes
-
-Example score shape:
-
-```json
-{
-  "dimension_score": 0.95,
-  "constraint_score": 0.83,
-  "overall": 0.90
-}
-```
-
-Recommended MVP interpretation:
-
-- Build a scoring interface now, but use deterministic mock or structured output initially.
-- Do not block the MVP on real CAD geometry parsing unless the senior lead chooses a specific CAD output format.
-- Keep scoring modular so real CAD analyzers can be added later.
-
-## 8. Credits, External Services, and AI-CAD Integrations
-
-The docs do not say where to get credits from.
-
-There is no mention of:
-
-- API keys
-- Provider accounts
-- Model credits
-- CAD service credits
-- Cloud billing
-- Funding
-- Token budgets
-
-`DESIGN.md` explicitly says external systems, including LLMs and CAD generation systems, are intentionally abstracted. The bootstrap scope also says the MVP must not include external services.
-
-Recommended MVP approach:
-
-- Implement provider interfaces or adapters.
-- Include a deterministic local fake generator for development and testing.
-- Make real LLM or CAD integrations optional future plugins.
-- Keep API keys out of the repo and document `.env` usage only when real providers are introduced.
-
-## 9. AI-Generated Code Policy
-
-The repo does not explicitly forbid AI-generated code.
-
-However, `CLA.md` requires contributors to represent that they have sufficient rights to submit their contributions. It defines contributions broadly, including source code, docs, designs, specs, test materials, patches, and comments.
-
-Practical interpretation:
-
-- AI-assisted code is not banned by the current docs.
-- Contributors still need to be comfortable making the CLA representations.
-- If this is an organizational concern, add a short `CONTRIBUTING.md` section clarifying whether AI-assisted code is allowed and under what conditions.
-
-## 10. License and Contribution Constraints
-
-License:
-
-- GPLv3, from the root `LICENSE` file.
-
-Contribution agreement:
-
-- `CLA.md` contains a contributor copyright assignment and patent license agreement.
-- Contributions are submitted under broad assignment terms.
-- Patent ownership is retained by contributors, but a broad patent license is granted to the project and downstream users for patent rights arising from contributions.
-
-Engineering impact:
-
-- Dependencies should be chosen with GPLv3 compatibility in mind.
-- If the project is intended to be used inside proprietary systems, GPLv3 implications should be reviewed before implementation decisions harden.
-- The senior lead should confirm whether the CLA text is intentional before soliciting external contributions.
-
-## 11. First Working Milestone
-
-The design document defines success as a user being able to:
-
-1. Run:
+On June 5, 2026, I ran:
 
 ```bash
-prompt-cli create-experiment
+python -m pytest projects/cad-diffusion/tests projects/cadybara-online-testing/tests projects/local-running/tests/test_config.py -q -p no:cacheprovider
 ```
 
-2. Run:
-
-```bash
-prompt-cli generate EXP001
-```
-
-3. Run:
-
-```bash
-prompt-cli run EXP001
-```
-
-4. Open the UI:
+Result:
 
 ```text
-localhost:3000
+21 passed
 ```
 
-5. View:
-
-- Prompt variants
-- Results
-- Metrics
-
-6. Run:
+Then I ran:
 
 ```bash
-prompt-cli publish EXP001
+python -m pytest -q -p no:cacheprovider
 ```
 
-7. Produce:
+Result:
 
 ```text
-published/bracket_expansion.json
+56 passed
 ```
 
-This is the minimum viable implementation described by the current docs.
-
-## 12. Recommended Implementation Plan
-
-### Step 1: Establish Project Skeleton
-
-Create documented directories:
-
-```text
-frontend/
-backend/
-analysis/
-cli/
-database/
-published/
-scripts/
-tests/
-```
-
-Add Python packaging, likely `pyproject.toml`, with dependencies for:
-
-- FastAPI
-- Uvicorn
-- Typer
-- Pydantic
-- SQLAlchemy or direct SQLite access
-- Pytest
-
-Add frontend tooling, likely Vite + React + TypeScript.
-
-### Step 2: Define Shared Python Models
-
-Create Pydantic models for:
-
-- Experiment
-- Prompt
-- PromptVariant
-- Run
-- Result
-- PublishedExperiment
-
-Keep them reusable across backend, CLI, and analysis modules.
-
-### Step 3: Implement SQLite Layer
-
-Implement the schema from `DESIGN.md`.
-
-Use a local database path:
-
-```text
-workspace/research.db
-```
-
-Add initialization command or automatic bootstrap.
-
-### Step 4: Implement Analysis MVP
-
-Start with deterministic local logic:
-
-- Seed prompt loading
-- Rule-based mutations
-- Rule-based expansions
-- Mock execution result generation
-- Basic scoring
-- Report generation
-
-This allows the entire workflow to function without external credits or CAD systems.
-
-### Step 5: Implement CLI
-
-Implement:
-
-```bash
-prompt-cli create-experiment
-prompt-cli generate EXP001
-prompt-cli run EXP001
-prompt-cli report EXP001
-prompt-cli publish EXP001
-```
-
-The CLI should use the same services as the backend.
-
-### Step 6: Implement Backend API
-
-Expose the documented endpoints.
-
-Use the same database and analysis services as the CLI.
-
-### Step 7: Implement Frontend
-
-Build a research workspace, not a marketing page.
-
-Minimum views:
-
-- Experiment list
-- Experiment detail
-- Prompt variants table
-- Run results table
-- Metrics summary
-- Published experiments view
-
-### Step 8: Publish JSON Output
-
-Implement `publish` so experiment outputs become stable JSON under `published/`.
-
-This should include:
-
-- Experiment metadata
-- Seed prompts
-- Variants
-- Results
-- Metrics
-- Summary statistics
-- Conclusions or recommendations
-
-## 13. Testing Strategy
-
-Because no tests exist yet, the senior lead should expect to define the baseline test structure.
-
-Recommended tests:
-
-- Unit tests for mutation generation
-- Unit tests for expansion generation
-- Unit tests for scoring
-- Unit tests for report generation
-- SQLite repository tests using a temporary database
-- CLI integration tests using Typer's test runner
-- FastAPI endpoint tests using `TestClient`
-- Frontend smoke tests for the three required pages
-- Golden-file or schema tests for published JSON output
-
-Minimum acceptance test for MVP:
-
-1. Create an experiment.
-2. Generate prompt variants.
-3. Run the experiment with a fake local executor.
-4. Persist results to SQLite.
-5. View results through API and UI.
-6. Publish a JSON file.
-7. Validate the JSON schema.
-
-## 14. Major Open Decisions
-
-These are not specified in the current docs and need senior-level decisions.
-
-### CAD Output Format
-
-The docs mention CAD outputs and geometry metrics but do not specify file formats.
-
-Options might include:
-
-- STEP
-- STL
-- OBJ
-- OpenSCAD
-- CADQuery Python objects
-- Structured mock JSON for MVP
-
-Recommendation: use structured mock JSON for the first milestone, then introduce real CAD formats once an integration target is chosen.
-
-### CAD Generator Interface
-
-The docs abstract external CAD generation systems.
-
-Need to decide:
-
-- What adapter interface should a CAD generator implement?
-- Is generation synchronous or asynchronous?
-- What does `raw_output` contain?
-- How are failures represented?
-
-### Scoring Truth Model
-
-The docs say to compare expected versus actual outputs, but they do not define how expected geometry is represented.
-
-Need to decide:
-
-- Is expected intent encoded manually in seed prompt metadata?
-- Is expected intent extracted from prompts?
-- Do tests use human-labeled expected values?
-- How are ambiguous prompts scored?
-
-### Prompt Dataset Scope
-
-`PROJECT.md` suggests 50 to 100 seed prompts.
-
-Need to decide:
-
-- Which CAD domains are in scope first?
-- How much complexity is allowed in the seed set?
-- How should prompts encode expected dimensions and constraints?
-
-### Prompt Expansion Source
-
-Docs allow both rule-based and LLM-based expansion.
-
-Need to decide:
-
-- Is MVP rule-only?
-- If LLM-based expansion is added later, which provider is used?
-- How are prompts and outputs cached for reproducibility?
-
-### Frontend Depth
-
-Docs define pages but not UX details.
-
-Need to decide:
-
-- Is the UI read-only for MVP except experiment creation?
-- Should users edit prompts manually?
-- Should users compare variants side by side?
-- Should results include charts in MVP?
-
-## 15. What Is Explicitly Out of Scope for Bootstrap
-
-The design document says the bootstrap version must not include:
-
-- Distributed systems
-- Authentication
-- Cloud storage
-- Queues
-- External services
-- Production deployment concerns
-
-This means the first implementation should stay local, simple, and reproducible.
-
-## 16. Suggested Senior Lead Framing
-
-This should be treated as an MVP research platform.
-
-The immediate engineering target is not "solve AI-CAD quality." It is:
-
-- Create a local experiment workflow.
-- Generate prompt variants.
-- Run deterministic placeholder experiments.
-- Store and display results.
-- Publish reproducible JSON.
-- Leave clean extension points for real LLM and CAD systems.
-
-Once the skeleton is working, the project can evolve into a real research pipeline by replacing mock generation and simple scoring with actual CAD generation, geometry parsing, and statistical analysis.
-
+After the tests, I restarted the lab on port `8788`, resumed CAD diffusion
+training from `checkpoint_step_011400.pt`, and observed
+`checkpoint_step_011425.pt` written with the 25-step checkpoint cadence.
+
+## How I Would Continue
+
+1. Resume or start the CAD diffusion trainer only after checking whether a lab
+   process is already running. Avoid duplicate trainers.
+2. Sample from multiple checkpoints and compare parse/compile/render validity,
+   uniqueness, and nearest-neighbor distance.
+3. Add grammar-constrained sampling. This should be declared decoding, not
+   silent repair.
+4. Add a discriminator report file for CAD diffusion sample runs.
+5. Expand the CAD language only after failure analysis shows which missing
+   features matter most.
+6. Keep docs honest and current. If a future agent changes defaults, checkpoint
+   folders, endpoints, or run policy, update this handoff and the relevant
+   project README in the same change.
+
+The project is strongest when it stays empirical: make the system run, record
+what actually happened, preserve failures, and let measurements decide the next
+move.

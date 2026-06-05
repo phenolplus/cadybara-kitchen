@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Cadybara Projects</title>
+    <link rel="stylesheet" href="./dashboard.css?v=project-studio2" />
+  </head>
+  <body>
+    <main class="studio-shell" aria-label="Cadybara project dashboard">
+      <nav class="studio-top" aria-label="Primary">
+        <a class="brand-lockup" href="./" aria-label="Back to Cadybara landing">
+          <span>CADYBARA</span>
+        </a>
+        <div class="top-actions">
+          <a class="top-button primary" href="./cad-diffusion.html">CAD Diffusion</a>
+          <button id="new-project" class="top-button" type="button">New project</button>
+          <button id="logout" class="top-button quiet" type="button">Sign out</button>
+        </div>
+      </nav>
+
+      <section class="dashboard-intro" aria-labelledby="dashboard-title">
+        <div class="intro-copy">
+          <p class="eyebrow">Project Studio</p>
+          <h1 id="dashboard-title">Projects</h1>
+          <p class="intro-note">
+            Choose an object family to shape prompts, references, and review surfaces.
+          </p>
+        </div>
+      </section>
+
+      <section class="workspace-layout">
+        <aside class="focus-panel" aria-live="polite" aria-label="Selected project">
+          <div id="focus-art" class="focus-art stone-1" aria-hidden="true"></div>
+          <p id="focus-kicker" class="focus-kicker">Benchmark Object</p>
+          <h2 id="focus-title">Wall Planter</h2>
+          <p id="focus-summary">
+            A compact object family for testing dimensional clarity, mounting features, and plant-friendly form.
+          </p>
+          <dl class="focus-details">
+            <div>
+              <dt>Focus</dt>
+              <dd id="focus-focus">Wall-mounted containers</dd>
+            </div>
+            <div>
+              <dt>Use</dt>
+              <dd id="focus-use">Prompt and rubric design</dd>
+            </div>
+            <div>
+              <dt>Surface</dt>
+              <dd id="focus-surface">CadQuery review</dd>
+            </div>
+          </dl>
+        </aside>
+
+        <section class="project-board" aria-label="Projects">
+          <div class="board-head">
+            <div>
+              <p class="eyebrow">Workspace</p>
+              <h2>Project Library</h2>
+            </div>
+            <span class="board-count">Object families</span>
+          </div>
+
+          <div class="project-grid">
+            <button
+              class="project-card is-selected tone-green"
+              type="button"
+              data-project="planter"
+              data-stone="stone-1"
+              data-kicker="Benchmark Object"
+              data-title="Wall Planter"
+              data-summary="A compact object family for testing dimensional clarity, mounting features, and plant-friendly form."
+              data-focus="Wall-mounted containers"
+              data-use="Prompt and rubric design"
+              data-surface="CadQuery review"
+              aria-pressed="true"
+            >
+              <span class="project-art stone-1" aria-hidden="true"></span>
+              <span class="project-copy">
+                <span class="project-type">Benchmark object</span>
+                <strong>Wall Planter</strong>
+                <span>Wall-mounted containers with practical constraints.</span>
+                <span class="project-meta">
+                  <span>mounting</span>
+                  <span>plant form</span>
+                </span>
+              </span>
+            </button>
+
+            <button
+              class="project-card tone-blue"
+              type="button"
+              data-project="bracket"
+              data-stone="stone-2"
+              data-kicker="Structural Part"
+              data-title="Desk Bracket"
+              data-summary="A utility part for exploring load paths, screw placement, and clean support geometry."
+              data-focus="Small support structures"
+              data-use="Constraint writing"
+              data-surface="Geometry checks"
+              aria-pressed="false"
+            >
+              <span class="project-art stone-2" aria-hidden="true"></span>
+              <span class="project-copy">
+                <span class="project-type">Structural part</span>
+                <strong>Desk Bracket</strong>
+                <span>Small fixtures, screw bosses, and mounting faces.</span>
+                <span class="project-meta">
+                  <span>load paths</span>
+                  <span>fasteners</span>
+                </span>
+              </span>
+            </button>
+
+            <button
+              class="project-card tone-green"
+              type="button"
+              data-project="enclosure"
+              data-stone="stone-3"
+              data-kicker="Product Shell"
+              data-title="Sensor Enclosure"
+              data-summary="A shell-focused family for asking models to reason about lids, vents, and connector openings."
+              data-focus="Protective housings"
+              data-use="Feature coverage"
+              data-surface="Source review"
+              aria-pressed="false"
+            >
+              <span class="project-art stone-3" aria-hidden="true"></span>
+              <span class="project-copy">
+                <span class="project-type">Product shell</span>
+                <strong>Sensor Enclosure</strong>
+                <span>Shells, lids, vents, and connector cutouts.</span>
+                <span class="project-meta">
+                  <span>lids</span>
+                  <span>vents</span>
+                </span>
+              </span>
+            </button>
+
+            <button
+              class="project-card tone-gold"
+              type="button"
+              data-project="handle"
+              data-stone="stone-4"
+              data-kicker="Ergonomic Form"
+              data-title="Ergonomic Handle"
+              data-summary="A form-heavy family for studying curves, comfort language, and manufacturable grips."
+              data-focus="Human-scale grips"
+              data-use="Prompt language"
+              data-surface="Shape critique"
+              aria-pressed="false"
+            >
+              <span class="project-art stone-4" aria-hidden="true"></span>
+              <span class="project-copy">
+                <span class="project-type">Ergonomic form</span>
+                <strong>Ergonomic Handle</strong>
+                <span>Grip profile, soft corners, and finger clearance.</span>
+                <span class="project-meta">
+                  <span>comfort</span>
+                  <span>curves</span>
+                </span>
+              </span>
+            </button>
+
+            <button
+              class="project-card tone-blue"
+              type="button"
+              data-project="mount"
+              data-stone="stone-5"
+              data-kicker="Mounting System"
+              data-title="Drone Mount"
+              data-summary="A lightweight mounting family for tabs, standoffs, and hardware clearance."
+              data-focus="Compact mounts"
+              data-use="Constraint coverage"
+              data-surface="Assembly review"
+              aria-pressed="false"
+            >
+              <span class="project-art stone-5" aria-hidden="true"></span>
+              <span class="project-copy">
+                <span class="project-type">Mounting system</span>
+                <strong>Drone Mount</strong>
+                <span>Lightweight tabs, standoffs, and camera brackets.</span>
+                <span class="project-meta">
+                  <span>tabs</span>
+                  <span>clearance</span>
+                </span>
+              </span>
+            </button>
+
+            <button
+              class="project-card tone-moss"
+              type="button"
+              data-project="organizer"
+              data-stone="stone-6"
+              data-kicker="Storage Object"
+              data-title="Tool Organizer"
+              data-summary="A repeatable-layout family for trays, slots, and compartment logic."
+              data-focus="Storage layouts"
+              data-use="Pattern prompts"
+              data-surface="Feature review"
+              aria-pressed="false"
+            >
+              <span class="project-art stone-6" aria-hidden="true"></span>
+              <span class="project-copy">
+                <span class="project-type">Storage object</span>
+                <strong>Tool Organizer</strong>
+                <span>Trays, slots, and repeatable compartments.</span>
+                <span class="project-meta">
+                  <span>slots</span>
+                  <span>repeatability</span>
+                </span>
+              </span>
+            </button>
+
+            <button
+              class="project-card tone-gold"
+              type="button"
+              data-project="lamp"
+              data-stone="stone-7"
+              data-kicker="Clamp Fixture"
+              data-title="Desk Lamp Clamp"
+              data-summary="A fixture family for jaws, hinges, cable routing, and stable attachment."
+              data-focus="Clamping geometry"
+              data-use="Mechanism prompts"
+              data-surface="Fit review"
+              aria-pressed="false"
+            >
+              <span class="project-art stone-7" aria-hidden="true"></span>
+              <span class="project-copy">
+                <span class="project-type">Clamp fixture</span>
+                <strong>Desk Lamp Clamp</strong>
+                <span>Clamp jaws, hinge clearance, and cable routing.</span>
+                <span class="project-meta">
+                  <span>jaws</span>
+                  <span>routing</span>
+                </span>
+              </span>
+            </button>
+
+            <button
+              class="project-card tone-moss"
+              type="button"
+              data-project="jig"
+              data-stone="stone-8"
+              data-kicker="Manufacturing Aid"
+              data-title="Assembly Jig"
+              data-summary="A precision-oriented family for alignment fixtures, stops, and repeatable holes."
+              data-focus="Assembly aids"
+              data-use="Tolerance language"
+              data-surface="Practicality review"
+              aria-pressed="false"
+            >
+              <span class="project-art stone-8" aria-hidden="true"></span>
+              <span class="project-copy">
+                <span class="project-type">Manufacturing aid</span>
+                <strong>Assembly Jig</strong>
+                <span>Alignment fixtures, stops, and repeatable holes.</span>
+                <span class="project-meta">
+                  <span>alignment</span>
+                  <span>tolerance</span>
+                </span>
+              </span>
+            </button>
+
+            <button
+              class="project-card tone-neutral"
+              type="button"
+              data-project="new"
+              data-stone="stone-9"
+              data-kicker="Open Slot"
+              data-title="New Project"
+              data-summary="A clean slot for the next CAD object family."
+              data-focus="Unassigned"
+              data-use="Future direction"
+              data-surface="Project setup"
+              aria-pressed="false"
+            >
+              <span class="project-art stone-9" aria-hidden="true"></span>
+              <span class="project-copy">
+                <span class="project-type">Open slot</span>
+                <strong>New Project</strong>
+                <span>A clean slot for the next CAD object family.</span>
+                <span class="project-meta">
+                  <span>blank brief</span>
+                  <span>new family</span>
+                </span>
+              </span>
+            </button>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <script src="./dashboard.js?v=project-studio2"></script>
+  </body>
+</html>

@@ -58,6 +58,7 @@ workspace/
 
 # Logs and temp files
 *.log
+*.err
 tmp/
 temp/
 .cache/

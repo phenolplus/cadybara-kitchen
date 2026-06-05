@@ -1,0 +1,33 @@
+experiment_id: "wall_planter_main_sweep_001"
+output_path: "projects/wall-planter-cad-study/workspace/runs/wall_planter_main_sweep_001/results.jsonl"
+
+models:
+  # Qwen 2.5 Coder family (3 sizes)
+  - { name: "qwen2.5-coder:3b",  provider: "ollama", base_url: "http://localhost:11434", family: "qwen-coder",      params_b: 3 }
+  - { name: "qwen2.5-coder:7b",  provider: "ollama", base_url: "http://localhost:11434", family: "qwen-coder",      params_b: 7 }
+  - { name: "qwen2.5-coder:14b", provider: "ollama", base_url: "http://localhost:11434", family: "qwen-coder",      params_b: 14 }
+  - { name: "qwen2.5-coder:32b", provider: "ollama", base_url: "http://localhost:11434", family: "qwen-coder",      params_b: 32 }
+
+  # DeepSeek Coder family (2 sizes; v1 6.7b + v2 16b - paper acknowledges this)
+  - { name: "deepseek-coder:6.7b",    provider: "ollama", base_url: "http://localhost:11434", family: "deepseek-coder", params_b: 6.7 }
+  - { name: "deepseek-coder-v2:16b",  provider: "ollama", base_url: "http://localhost:11434", family: "deepseek-coder", params_b: 16 }
+  - { name: "deepseek-coder-v2:236b", provider: "ollama", base_url: "http://localhost:11434", family: "deepseek-coder", params_b: 236 }
+
+  # StarCoder 2 family (3 sizes)
+  - { name: "starcoder2:3b",  provider: "ollama", base_url: "http://localhost:11434", family: "starcoder2", params_b: 3 }
+  - { name: "starcoder2:7b",  provider: "ollama", base_url: "http://localhost:11434", family: "starcoder2", params_b: 7 }
+  - { name: "starcoder2:15b", provider: "ollama", base_url: "http://localhost:11434", family: "starcoder2", params_b: 15 }
+
+prompts_file: "projects/wall-planter-cad-study/prompts/planter_prompts.yaml"
+
+strategies:
+  - { name: "identity" }
+
+sampling:
+  temperatures: [0.7]
+  repetitions: 2
+  max_tokens: 2048
+
+cad:
+  enabled: true
+  max_attempts_per_cell: 1

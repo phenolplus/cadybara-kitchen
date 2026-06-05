@@ -1,0 +1,32 @@
+experiment_id: "wall_planter_kaggle_vision_repair_001"
+output_path: "/kaggle/working/cadybara_outputs/wall_planter_kaggle_vision_repair_001/results.jsonl"
+artifact_root: "/kaggle/working/cadybara_outputs/wall_planter_kaggle_vision_repair_001/artifacts"
+
+# Kaggle-free-GPU sized vision models. These keep the image repair loop intact
+# without trying to fit 32B+ models into a typical T4/P100-class notebook.
+models:
+  - { name: "qwen2.5vl:7b",          provider: "ollama", base_url: "http://localhost:11434", family: "qwen2.5-vl",       params_b: 7,  vision: true, disk_gb: 6,  timeout_seconds: 3600 }
+  - { name: "llama3.2-vision:11b",   provider: "ollama", base_url: "http://localhost:11434", family: "llama3.2-vision", params_b: 11, vision: true, disk_gb: 8,  timeout_seconds: 3600 }
+  - { name: "gemma3:12b",            provider: "ollama", base_url: "http://localhost:11434", family: "gemma3",          params_b: 12, vision: true, disk_gb: 8,  timeout_seconds: 3600 }
+  - { name: "llava:13b",             provider: "ollama", base_url: "http://localhost:11434", family: "llava",           params_b: 13, vision: true, disk_gb: 8,  timeout_seconds: 3600 }
+
+prompts_file: "projects/wall-planter-cad-study/prompts/planter_prompts.yaml"
+
+strategies:
+  - { name: "identity" }
+
+sampling:
+  temperatures: [0.2]
+  repetitions: 2
+  max_tokens: 2048
+  max_attempts_per_cell: 1
+
+cad:
+  enabled: true
+  max_attempts_per_cell: 1
+
+repair:
+  enabled: true
+  rounds: 3
+  feedback: "render_png"
+  always_run_all_rounds: true

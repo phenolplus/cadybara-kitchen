@@ -1,0 +1,31 @@
+experiment_id: "wall_planter_vision_repair_sweep_001"
+output_path: "projects/wall-planter-cad-study/workspace/runs/wall_planter_vision_repair_sweep_001/results.jsonl"
+
+models:
+  - { name: "qwen3-vl:235b", provider: "ollama", base_url: "http://localhost:11434", family: "qwen3-vl", params_b: 235, vision: true, disk_gb: 143, timeout_seconds: 7200, num_thread: 12 }
+  - { name: "llama3.2-vision:90b", provider: "ollama", base_url: "http://localhost:11434", family: "llama3.2-vision", params_b: 88.6, vision: true, disk_gb: 55, timeout_seconds: 7200, num_thread: 12 }
+  - { name: "qwen2.5vl:72b", provider: "ollama", base_url: "http://localhost:11434", family: "qwen2.5-vl", params_b: 73.4, vision: true, disk_gb: 49, timeout_seconds: 7200, num_thread: 12 }
+  - { name: "llava:34b", provider: "ollama", base_url: "http://localhost:11434", family: "llava", params_b: 34.4, vision: true, disk_gb: 20, timeout_seconds: 7200, num_thread: 12 }
+  - { name: "gemma3:27b", provider: "ollama", base_url: "http://localhost:11434", family: "gemma3", params_b: 27.4, vision: true, disk_gb: 17, timeout_seconds: 7200, num_thread: 12 }
+  - { name: "mistral-small3.2:24b", provider: "ollama", base_url: "http://localhost:11434", family: "mistral", params_b: 24, vision: true, disk_gb: 15, timeout_seconds: 7200, num_thread: 12 }
+
+prompts_file: "projects/wall-planter-cad-study/prompts/planter_prompts.yaml"
+
+strategies:
+  - { name: "identity" }
+
+sampling:
+  temperatures: [0.2]
+  repetitions: 2
+  max_tokens: 4096
+  max_attempts_per_cell: 1
+
+cad:
+  enabled: true
+  max_attempts_per_cell: 1
+
+repair:
+  enabled: true
+  rounds: 3
+  feedback: "render_png"
+  always_run_all_rounds: true
