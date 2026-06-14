@@ -13,6 +13,15 @@ def record_failed(record: RunRecord) -> bool:
     return record.error is not None or record.render_error is not None
 
 
+def record_has_viewable_stl(record: RunRecord) -> bool:
+    artifacts = record.artifacts or {}
+    if not artifacts.get("stl") or record.error is not None:
+        return False
+    return record.render_error is None or (
+        record.provider == "cadybara_api" and bool(artifacts.get("hosted_stl"))
+    )
+
+
 def model_weight(model: ModelConfig) -> float:
     params_b = model.params_b or 1.0
     return float(params_b) ** 1.5
@@ -161,7 +170,7 @@ def run_status_payload(
         artifacts = record.artifacts or {}
         stl = artifacts.get("stl")
         preview_png = artifacts.get("preview_png")
-        if (stl or preview_png) and record.error is None and record.render_error is None:
+        if (stl or preview_png) and record_has_viewable_stl(record):
             recent_renders.append(
                 {
                     "run_id": record.run_id,

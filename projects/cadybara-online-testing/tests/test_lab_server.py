@@ -9,6 +9,7 @@ from cadybara_online_testing.lab_server import (
     LabState,
     assign_run_config_for_start,
     clear_current_job,
+    experiment_ollama_queue,
     practice_output_path,
     read_current_job,
     update_current_job_status,
@@ -20,7 +21,137 @@ from cadybara_online_testing.lab_server import (
 def test_online_smoke_config_loads() -> None:
     config = load_config("projects/cadybara-online-testing/configs/online_smoke.yaml")
     assert config.experiment_id == "cadybara_online_smoke"
-    assert config.models[0].name == "qwen2.5-coder:0.5b"
+    assert config.models[0].name == "cadybara-agent-default"
+    assert config.models[0].provider == "cadybara_api"
+    assert config.models[0].response_mode == "sse"
+    assert len(config.seeds) == 5
+    assert [seed.id for seed in config.seeds] == [
+        "planter_01_minimal",
+        "planter_03_mounting",
+        "planter_05_shape",
+        "planter_07_thickness",
+        "planter_10_full",
+    ]
+
+
+def test_online_smoke_reps2_config_loads() -> None:
+    config = load_config("projects/cadybara-online-testing/configs/online_smoke_reps2.yaml")
+    assert config.experiment_id == "cadybara_online_smoke_reps2"
+    assert config.models[0].provider == "cadybara_api"
+    assert config.models[0].response_mode == "sse"
+    assert len(config.seeds) == 5
+    assert config.sampling.repetitions == 2
+    assert config.sampling.max_attempts_per_cell == 1
+
+
+def test_online_smoke_blind_extra_configs_load() -> None:
+    expected = {
+        "online_smoke_blind_extra.yaml": ("cadybara_online_smoke_blind_extra", 1),
+        "online_smoke_blind_extra2.yaml": ("cadybara_online_smoke_blind_extra2", 1),
+        "online_smoke_blind_extra3.yaml": ("cadybara_online_smoke_blind_extra3", 1),
+        "online_smoke_blind_20260608_reps3.yaml": (
+            "cadybara_online_smoke_blind_20260608_reps3",
+            3,
+        ),
+    }
+    for filename, (experiment_id, repetitions) in expected.items():
+        config = load_config(f"projects/cadybara-online-testing/configs/{filename}")
+        assert config.experiment_id == experiment_id
+        assert config.models[0].provider == "cadybara_api"
+        assert config.models[0].response_mode == "sse"
+        assert len(config.seeds) == 5
+        assert config.sampling.repetitions == repetitions
+        assert config.sampling.max_attempts_per_cell == 1
+
+
+def test_online_snowman_reps3_config_loads() -> None:
+    expected = {
+        "online_snowman_20260609_reps3.yaml": ("cadybara_online_snowman_20260609_reps3", 3),
+        "online_snowman_20260609_reps4.yaml": ("cadybara_online_snowman_20260609_reps4", 4),
+        "online_snowman_20260610_reps3.yaml": ("cadybara_online_snowman_20260610_reps3", 3),
+    }
+    for filename, (experiment_id, repetitions) in expected.items():
+        config = load_config(f"projects/cadybara-online-testing/configs/{filename}")
+        assert config.experiment_id == experiment_id
+        assert config.models[0].name == "cadybara-agent-default"
+        assert config.models[0].provider == "cadybara_api"
+        assert config.models[0].response_mode == "sse"
+        assert len(config.seeds) == 5
+        assert [seed.id for seed in config.seeds] == [
+            "snowman_01_minimal",
+            "snowman_03_clear",
+            "snowman_05_printable",
+            "snowman_07_dimensions",
+            "snowman_10_full",
+        ]
+        assert [seed.metadata["specificity_level"] for seed in config.seeds] == [1, 3, 5, 7, 10]
+        assert all("button holes" in seed.text for seed in config.seeds)
+        assert config.sampling.repetitions == repetitions
+        assert config.sampling.max_attempts_per_cell == 1
+
+
+def test_online_hook_reps3_config_loads() -> None:
+    config = load_config("projects/cadybara-online-testing/configs/online_hook_20260611_reps3.yaml")
+
+    assert config.experiment_id == "cadybara_online_hook_20260611_reps3"
+    assert config.models[0].name == "cadybara-agent-default"
+    assert config.models[0].provider == "cadybara_api"
+    assert config.models[0].response_mode == "sse"
+    assert len(config.seeds) == 5
+    assert [seed.id for seed in config.seeds] == [
+        "hook_01_minimal",
+        "hook_03_clear",
+        "hook_05_printable",
+        "hook_07_dimensions",
+        "hook_10_full",
+    ]
+    assert [seed.metadata["specificity_level"] for seed in config.seeds] == [1, 3, 5, 7, 10]
+    assert all("hook" in seed.text.lower() for seed in config.seeds)
+    assert config.sampling.repetitions == 3
+    assert config.sampling.max_attempts_per_cell == 1
+
+
+def test_hosted_only_config_has_no_ollama_queue(tmp_path: Path) -> None:
+    config = load_config("projects/cadybara-online-testing/configs/online_smoke_reps2.yaml")
+    state = LabState(tmp_path)
+
+    assert experiment_ollama_queue(config) is None
+    snapshot = state.model_snapshot(None, default_if_missing=False)
+    assert snapshot["models"] == []
+
+
+def test_display_config_prefers_existing_manual_output(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.chdir(tmp_path)
+    config_path = tmp_path / "manual.yaml"
+    output_path = tmp_path / "workspace" / "manual" / "results.jsonl"
+    config_path.write_text(
+        f"""
+experiment_id: "manual_existing"
+output_path: "{output_path.as_posix()}"
+models:
+  - name: "model_a"
+    provider: "ollama"
+    base_url: "http://localhost:11434"
+seeds:
+  - id: "seed_001"
+    text: "Prompt one"
+    metadata: {{}}
+strategies:
+  - name: "identity"
+sampling:
+  temperatures: [0.7]
+  repetitions: 1
+  max_tokens: 32
+""".lstrip(),
+        encoding="utf-8",
+    )
+    config = load_config(config_path)
+    run_config(config, dry_run=True)
+
+    display = LabState(tmp_path).display_config(config_path)
+
+    assert display.experiment_id == "manual_existing"
+    assert display.output_path == output_path.as_posix()
 
 
 def test_lab_start_resumes_latest_partial_run(tmp_path: Path, monkeypatch) -> None:

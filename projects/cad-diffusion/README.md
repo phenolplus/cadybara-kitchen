@@ -8,6 +8,10 @@ Transformer over simple CAD operations.
 Read the repo-level `COMMON.md` first if the shared artifact and JSONL rules are
 new.
 
+This is its own research project. It can reuse artifact/export helpers from the
+runner, and the lab/website can control or display its jobs, but the dataset,
+model, sampling, and evaluation logic belong here.
+
 For a detailed cold-start handoff, including the current model folder, resume
 commands, checkpoint observations, research framing, and next-step guidance,
 read `HANDOFF.md`.
@@ -22,6 +26,10 @@ read `HANDOFF.md`.
   - program-to-CadQuery compilation
   - optional PyTorch training
   - sampling, artifact compilation, and run evaluation
+- `cadybara_cad_diffusion/voxel.py`
+  - Fusion OBJ normalization and voxelization
+  - dense voxel DDPM training
+  - voxel sampling, marching-cubes STL export, and discriminator metrics
 - `tests/test_cad_diffusion.py` for grammar, dataset prep, training stop,
   compile, and evaluation coverage.
 - `workspace/` for ignored source datasets, prepared token splits, model
@@ -44,6 +52,20 @@ read `HANDOFF.md`.
 7. Every sample is appended to `results.jsonl` as a `CadDiffusionRecord`.
 8. `eval_cad_diffusion_run()` summarizes parse validity, compilation,
    renderability, uniqueness, and nearest-neighbor token distance.
+
+## Voxel Diffusion Flow
+
+1. `prepare_voxel_dataset()` scans the Fusion reconstruction folder for OBJ
+   meshes.
+2. Each mesh is normalized into a centered unit cube, voxelized, interior-filled
+   when possible, and stored as compressed boolean grids.
+3. `train_voxel_diffusion_model()` trains a small CPU-feasible 3D U-Net DDPM on
+   dense occupancy grids.
+4. `sample_voxel_diffusion_model()` denoises random 3D noise into occupancy,
+   thresholds it, exports `voxels.npz`, `raw.stl`, `preview.png`, and
+   `metrics.json`, then appends a `VoxelDiffusionRecord`.
+5. `eval_voxel_diffusion_run()` summarizes renderability, nonempty outputs,
+   occupancy, connectedness, and novelty.
 
 Parse errors, compile errors, render errors, and near-duplicates are part of the
 measurement. Do not patch generated samples into valid CAD after sampling.
@@ -80,6 +102,15 @@ Evaluate a sample run:
 cadybara cad-diffusion eval projects/cad-diffusion/workspace/runs/cad_diffusion_smoke
 ```
 
+Voxel diffusion smoke path:
+
+```bash
+cadybara voxel-diffusion prepare --resolution 32 --max-examples 3
+cadybara voxel-diffusion train --resolution 32 --max-steps 1 --base-channels 4 --timesteps 10
+cadybara voxel-diffusion sample --count 1 --sample-steps 2
+cadybara voxel-diffusion eval projects/cad-diffusion/workspace/runs/voxel_diffusion_64_sample_001
+```
+
 ## Current Limits
 
 - v0 grammar only covers simple extrudes with rectangle or circle profiles.
@@ -103,6 +134,11 @@ token generator -> grammar/compile/render validity gate -> discriminator report
 The first discriminator should be a transparent score vector over validity,
 CAD-likeness, usefulness, novelty, and manufacturability rather than a single
 opaque reward. See `HANDOFF.md` for the fuller version of that recommendation.
+
+For voxel diffusion, the first discriminator report is geometry-native:
+occupancy, connected components, largest-component ratio, bounding-box fill,
+surface area, volume, watertightness, Euler number, nearest-neighbor IoU
+novelty, and renderability.
 
 ## Tests
 

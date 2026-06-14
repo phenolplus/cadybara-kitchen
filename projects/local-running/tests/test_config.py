@@ -57,3 +57,48 @@ sampling:
 
     assert role_config.models[0].role == "online-smoke"
     assert config_hash(role_config) == config_hash(plain_config)
+
+
+def test_hosted_provider_transport_fields_do_not_change_existing_config_hash(tmp_path: Path) -> None:
+    base = """
+experiment_id: "provider_defaults"
+output_path: "{output_path}"
+models:
+  - name: "model_a"
+    provider: "ollama"
+    base_url: "http://localhost:11434"
+{extra_lines}
+seeds:
+  - id: "seed_001"
+    text: "Prompt one"
+    metadata: {{}}
+strategies:
+  - name: "identity"
+sampling:
+  temperatures: [0.7]
+  repetitions: 1
+  max_tokens: 32
+""".lstrip()
+    plain = tmp_path / "plain.yaml"
+    explicit_defaults = tmp_path / "explicit_defaults.yaml"
+    default_lines = """
+    api_key_env: "CADYBARA_API_KEY"
+    response_mode: "sse"
+    linear_deflection: 0.1
+    angular_deflection: 0.1
+    unwrap_cadquery_prompt: true
+""".rstrip()
+    plain.write_text(
+        base.format(output_path=(tmp_path / "plain.jsonl").as_posix(), extra_lines=""),
+        encoding="utf-8",
+    )
+    explicit_defaults.write_text(
+        base.format(
+            output_path=(tmp_path / "explicit.jsonl").as_posix(),
+            extra_lines=default_lines,
+        ),
+        encoding="utf-8",
+    )
+
+    assert config_hash(load_config(plain)) == config_hash(load_config(explicit_defaults))
+    assert load_config(explicit_defaults).models[0].response_mode == "sse"

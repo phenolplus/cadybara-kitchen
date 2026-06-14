@@ -1,0 +1,2 @@
+Design a wall-mounted planter that holds a small potted plant and can be
+hung on a nail or screw in drywall.

@@ -54,6 +54,44 @@ def write_tiny_cad_dataset(data_dir: Path) -> None:
     )
 
 
+def write_tiny_voxel_dataset(data_dir: Path) -> None:
+    pytest_np = __import__("numpy")
+    data_dir.mkdir(parents=True)
+    voxel_dir = data_dir / "voxels"
+    voxel_dir.mkdir()
+    voxels = pytest_np.zeros((32, 32, 32), dtype=bool)
+    voxels[8:24, 8:24, 8:24] = True
+    voxel_path = voxel_dir / "tiny.npz"
+    pytest_np.savez_compressed(voxel_path, voxels=voxels)
+    example = {
+        "example_id": "tiny",
+        "split": "train",
+        "source_path": "tiny.obj",
+        "voxel_path": voxel_path.as_posix(),
+        "resolution": 32,
+        "filled_voxels": int(voxels.sum()),
+        "occupancy_ratio": float(voxels.sum() / voxels.size),
+        "bbox_fill_ratio": 1.0,
+        "normalization": {"scale": 1.0},
+    }
+    (data_dir / "train.jsonl").write_text(json.dumps(example) + "\n", encoding="utf-8")
+    (data_dir / "test.jsonl").write_text(json.dumps({**example, "split": "test"}) + "\n", encoding="utf-8")
+    (data_dir / "val.jsonl").write_text("", encoding="utf-8")
+    (data_dir / "manifest.json").write_text(
+        json.dumps(
+            {
+                "written": 1,
+                "scanned_obj": 1,
+                "failed": 0,
+                "resolution": 32,
+                "split_counts": {"train": 1, "test": 1, "val": 0},
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+
 @dataclass(frozen=True)
 class FakeTrainSummary:
     steps: int
@@ -224,6 +262,140 @@ def test_cad_diffusion_start_endpoint_rejects_conflicting_run(tmp_path: Path, mo
             raise AssertionError("conflicting CAD diffusion train start unexpectedly succeeded")
 
         stop_code, stop_payload = post_json(f"{base}/api/cad-diffusion/train/stop")
+        assert stop_code == 202
+        assert stop_payload["stop_requested"] is True
+    finally:
+        server.shutdown()
+        server.server_close()
+
+
+def test_voxel_diffusion_status_endpoint_reports_blocked(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr(
+        lab_server,
+        "VOXEL_DIFFUSION_DEFAULTS",
+        {
+            **lab_server.VOXEL_DIFFUSION_DEFAULTS,
+            "data_dir": str(tmp_path / "missing_voxels"),
+            "model_dir": str(tmp_path / "models"),
+            "resolution": 32,
+        },
+    )
+    monkeypatch.setattr(
+        lab_server,
+        "voxel_dependency_status",
+        lambda: {
+            "available": True,
+            "version": "test",
+            "versions": {"torch": "test"},
+            "missing": [],
+            "cuda_available": False,
+            "cuda_device_count": 0,
+            "device": "cpu",
+            "message": "CPU-only PyTorch detected; overnight training is expected.",
+        },
+    )
+    state = LabState(tmp_path)
+    server = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(state))
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        status = get_json(f"http://127.0.0.1:{server.server_port}/api/voxel-diffusion/status")
+        assert status["ready"] is False
+        assert status["job"]["status"] == "idle"
+        assert "Prepared voxel dataset is missing" in status["blockers"][0]
+    finally:
+        server.shutdown()
+        server.server_close()
+
+
+def test_voxel_diffusion_start_endpoint_rejects_conflicting_run(tmp_path: Path, monkeypatch) -> None:
+    data_dir = tmp_path / "voxels"
+    model_dir = tmp_path / "models"
+    write_tiny_voxel_dataset(data_dir)
+    monkeypatch.setattr(
+        lab_server,
+        "VOXEL_DIFFUSION_DEFAULTS",
+        {
+            **lab_server.VOXEL_DIFFUSION_DEFAULTS,
+            "data_dir": str(data_dir),
+            "model_dir": str(model_dir),
+            "resolution": 32,
+            "max_steps": 5,
+            "checkpoint_interval": 100,
+        },
+    )
+    monkeypatch.setattr(
+        lab_server,
+        "voxel_dependency_status",
+        lambda: {
+            "available": True,
+            "version": "test",
+            "versions": {"torch": "test"},
+            "missing": [],
+            "cuda_available": False,
+            "cuda_device_count": 0,
+            "device": "cpu",
+            "message": "CPU-only PyTorch detected; overnight training is expected.",
+        },
+    )
+    entered = threading.Event()
+
+    def fake_train(data_dir_arg, model_dir_arg, **kwargs):
+        model_dir_arg.mkdir(parents=True, exist_ok=True)
+        kwargs["on_progress"](
+            {
+                "phase": "started",
+                "step": 0,
+                "max_steps": kwargs["max_steps"],
+                "checkpoint_path": (model_dir_arg / "checkpoint_step_000000.pt").as_posix(),
+                "device": "cpu",
+                "examples": 1,
+                "loss": None,
+                "elapsed_seconds": 0.0,
+                "resolution": 32,
+            }
+        )
+        entered.set()
+        while not kwargs["should_stop"]():
+            time.sleep(0.01)
+        checkpoint = model_dir_arg / "checkpoint_step_000001.pt"
+        checkpoint.write_bytes(b"fake")
+        return FakeTrainSummary(
+            steps=1,
+            checkpoint_path=checkpoint,
+            device="cpu",
+            examples=1,
+            elapsed_seconds=0.1,
+        )
+
+    monkeypatch.setattr(lab_server, "train_voxel_diffusion_model", fake_train)
+    state = LabState(tmp_path)
+    server = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(state))
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        base = f"http://127.0.0.1:{server.server_port}"
+        status_code, payload = post_json(f"{base}/api/voxel-diffusion/train/start")
+        assert status_code == 202
+        assert payload["started"] is True
+        assert entered.wait(timeout=2)
+        status = get_json(f"{base}/api/voxel-diffusion/status")
+        assert status["job"]["status"] == "running"
+
+        conflict_request = Request(
+            f"{base}/api/voxel-diffusion/train/start",
+            data=b"{}",
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        try:
+            urlopen(conflict_request, timeout=5)  # noqa: S310 - local test server.
+        except Exception as exc:  # noqa: BLE001 - urllib exposes 409 as an exception.
+            assert "HTTP Error 409" in str(exc)
+        else:  # pragma: no cover - the conflict must reject.
+            raise AssertionError("conflicting voxel diffusion train start unexpectedly succeeded")
+
+        stop_code, stop_payload = post_json(f"{base}/api/voxel-diffusion/train/stop")
         assert stop_code == 202
         assert stop_payload["stop_requested"] is True
     finally:

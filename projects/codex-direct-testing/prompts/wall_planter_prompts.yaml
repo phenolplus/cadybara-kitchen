@@ -1,0 +1,43 @@
+- id: planter_01_minimal
+  specificity_level: 1
+  text: |
+    Make me a planter I can put on my wall.
+
+- id: planter_03_mounting
+  specificity_level: 3
+  text: |
+    Design a wall-mounted planter that holds a small potted plant and can be
+    hung on a nail or screw in drywall.
+
+- id: planter_05_shape
+  specificity_level: 5
+  text: |
+    Design a cylindrical wall-mounted planter about the size of a coffee mug,
+    open at the top, that holds a small potted plant and hangs flat against
+    the wall on a single screw.
+
+- id: planter_07_thickness
+  specificity_level: 7
+  text: |
+    Design a cylindrical 3D-printable wall-mounted planter, 90 mm tall and
+    80 mm outer diameter, with a 3 mm wall thickness, an open top, and a flat
+    back panel containing one mounting hole sized for a #8 screw.
+
+- id: planter_10_full
+  specificity_level: 10
+  text: |
+    Design a 3D-printable wall-mounted planter with the following specifications.
+    The body is a hollow cylinder, 80 mm outer diameter, 90 mm tall, with a
+    uniform 3 mm wall thickness, open at the top and closed at the bottom. The
+    bottom of the cylinder contains four 3 mm diameter drainage holes arranged
+    in a square pattern, each centered 15 mm from the cylinder's central axis.
+    The back is a flat rectangular panel, 100 mm tall x 90 mm wide x 4 mm thick,
+    tangent to the outside of the cylinder along a vertical line, and extending
+    5 mm above the cylinder's top edge and 5 mm below its bottom edge. The back
+    panel contains one keyhole-shaped mounting slot centered horizontally, with
+    its top edge 15 mm below the top of the back panel: an 8 mm diameter
+    circular opening with a 4 mm wide x 10 mm tall rectangular slot extending
+    downward from the circle's center, sized to accept a #8 pan-head screw. All
+    external edges except the open top rim have a 1 mm fillet. The model is a
+    single watertight solid suitable for FDM 3D printing without supports when
+    oriented with the back panel flat on the print bed.

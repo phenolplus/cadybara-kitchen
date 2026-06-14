@@ -25,9 +25,9 @@ experiment unless Arvin asks.
 
 This worker quickstart is for the local-worker path. It is not the hosted
 Cadybara product API path. If the goal is to run against
-`https://api.cadybara.com`, read `docs/HOSTED_CADYBARA_API.md` first; that
-future path needs a hosted provider adapter and `CADYBARA_API_KEY`, not local
-Ollama model pulls.
+`https://api.cadybara.com`, read `docs/HOSTED_CADYBARA_API.md` first. That path
+uses the `cadybara_api` provider and `CADYBARA_API_KEY`, not local Ollama model
+pulls.
 
 ## Operating Model
 
@@ -118,10 +118,10 @@ CADYBARA_LAB_DISABLE_AUTO_PULL=1
 logical threads. It is not sacred. CPU inference on this chip may be faster at
 2 threads than 4; run a small A/B benchmark later and keep the faster setting.
 
-If a future config uses a hosted provider instead of `provider: ollama`, the
-Ollama pull/status parts of this worker setup are irrelevant for generation.
-The append-only JSONL, CadQuery export, review, resume, and publish rules still
-apply.
+If a config uses the hosted `cadybara_api` provider instead of
+`provider: ollama`, the Ollama pull/status parts of this worker setup are
+irrelevant for generation. The append-only JSONL, CadQuery export, review,
+resume, and publish rules still apply.
 
 ## Connecting From The Laptop
 
@@ -191,7 +191,7 @@ missing model, the lab should warn and wait. Pull models explicitly through the
 UI or with:
 
 ```bash
-.venv/bin/cadybara pull-models projects/cadybara-online-testing/configs/online_smoke.yaml
+.venv/bin/cadybara pull-models projects/cadybara-online-testing/configs/local_ollama_smoke.yaml
 ```
 
 or with a custom explicit queue file. This rule protects the 150 GB disk from
@@ -232,8 +232,8 @@ requiring an Ollama model.
 When at least one small model is installed:
 
 ```bash
-.venv/bin/cadybara run projects/cadybara-online-testing/configs/online_smoke.yaml --limit 1
-.venv/bin/cadybara run projects/cadybara-online-testing/configs/online_smoke.yaml --limit 1
+.venv/bin/cadybara run projects/cadybara-online-testing/configs/local_ollama_smoke.yaml --limit 1
+.venv/bin/cadybara run projects/cadybara-online-testing/configs/local_ollama_smoke.yaml --limit 1
 ```
 
 The second command should skip completed work. That is the resume proof.
@@ -243,7 +243,7 @@ The second command should skip completed work. That is the resume proof.
 Live runs stay in workspace paths. To publish a GitHub snapshot later:
 
 ```bash
-.venv/bin/python projects/local-running/scripts/worker_publish_results.py --config projects/cadybara-online-testing/configs/online_smoke.yaml
+.venv/bin/python projects/local-running/scripts/worker_publish_results.py --config projects/cadybara-online-testing/configs/local_ollama_smoke.yaml
 ```
 
 The publish script refuses dirty tracked source by default, creates a results
@@ -293,7 +293,7 @@ git status --short
 Inspect a run:
 
 ```bash
-.venv/bin/cadybara inspect projects/cadybara-online-testing/workspace/runs/cadybara_online_smoke_001/results.jsonl
+.venv/bin/cadybara inspect projects/cadybara-online-testing/workspace/runs/cadybara_local_ollama_smoke_001/results.jsonl
 ```
 
 Inspect current worker job:

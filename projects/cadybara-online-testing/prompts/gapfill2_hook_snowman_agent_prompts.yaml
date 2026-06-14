@@ -1,0 +1,55 @@
+- id: hook_07_dimensions
+  specificity_level: 7
+  text: |
+    Design a 3D-printable wall-mounted cable or headphone hook with a 90 mm tall
+    x 38 mm wide x 6 mm thick flat back plate. Add two 5 mm diameter circular
+    screw holes centered on the plate, spaced 55 mm apart vertically. The hook
+    should project 55 mm forward from the plate, curve upward at the tip, and
+    be about 14 mm thick with rounded edges and fillets for strength.
+
+- id: snowman_10_full
+  specificity_level: 10
+  text: |
+    Design a single-piece 3D-printable curved snowman figurine with three
+    rounded-square body sections stacked vertically, not spherical snowballs.
+    The total height is 120 mm. The bottom section is 65 mm wide x 52 mm deep
+    x 38 mm tall, the middle section is 52 mm wide x 44 mm deep x 34 mm tall,
+    and the top section is 40 mm wide x 36 mm deep x 30 mm tall. Each section
+    is a rounded rectangular solid with 8 mm corner radii and 2 mm external
+    fillets. The sections overlap slightly so the model is one watertight solid.
+    The vertical centerline should form a smooth forward curve: the middle
+    section center is shifted 8 mm forward from the bottom section, and the top
+    section center is shifted 18 mm forward from the bottom section. Add three
+    5 mm diameter circular button holes recessed 2 mm into the left side and
+    three matching 5 mm diameter button holes recessed 2 mm into the right side,
+    evenly spaced vertically across the stack. The bottom should be flat so the
+    snowman can stand upright on a print bed without supports.
+
+- id: hook_01_minimal
+  specificity_level: 1
+  text: |
+    Design a 3D-printable curved wall-mounted hook with a flat back plate and
+    two circular screw holes.
+
+- id: hook_03_clear
+  specificity_level: 3
+  text: |
+    Design a single-piece 3D-printable wall-mounted cable or headphone hook.
+    It should have a flat vertical back plate, two circular screw holes for
+    mounting, and one smooth curved hook projecting forward from the plate.
+
+- id: hook_10_full
+  specificity_level: 10
+  text: |
+    Design a single-piece 3D-printable wall-mounted cable or headphone hook.
+    The back plate is a flat vertical rounded rectangle, 90 mm tall x 38 mm wide
+    x 6 mm thick, with 5 mm corner radii and 2 mm edge fillets. Add two 5 mm
+    diameter countersunk screw holes centered horizontally on the plate, spaced
+    55 mm apart vertically, with shallow 10 mm diameter recesses around each
+    hole. A strong curved hook projects forward from the lower half of the
+    plate, extends 55 mm from the wall, and curves upward at the end to prevent
+    items from sliding off. The hook should be 14 mm thick, smoothly blended
+    into the back plate with rounded fillets, and include a triangular support
+    rib under the hook. The back face must remain flat so it mounts flush
+    against a wall, and the whole model should be one watertight printable
+    solid.

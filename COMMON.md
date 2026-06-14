@@ -1,6 +1,12 @@
 # Common Cadybara Concepts
 
-This file explains the shared language used by all four active projects.
+This file explains the shared language used by the active projects and
+experiment sandboxes.
+
+Shared language is not shared ownership. Each folder under `projects/` remains
+its own project with its own README, AGENTS file, tests, and ignored workspace.
+Use this file to understand the contracts between projects, not to blur their
+boundaries.
 
 ## End-to-End Flow
 
@@ -14,7 +20,8 @@ This file explains the shared language used by all four active projects.
 4. Each run cell gets a deterministic sampling seed. If the output JSONL
    already has a complete row for that resume key, the runner skips it.
 5. The provider returns model text. Dry-run writes `DRY_RUN`; Ollama calls the
-   local Ollama API through `httpx`.
+   local Ollama API through `httpx`; hosted Cadybara calls
+   `POST /api/agent/generate` through the `cadybara_api` provider.
 6. For `output_mode: cadquery`, the model text is treated as CadQuery source.
    The harness extracts source, executes it, and exports STL/STEP/PNG artifacts
    only when the code works.
@@ -22,10 +29,15 @@ This file explains the shared language used by all four active projects.
    missing `result`, parse failures, render failures, and max-attempt failures
    stay in the data.
 8. `projects/cadybara-online-testing/` can start those runs from the lab API,
-   report progress, show recent artifacts, and append review scores.
+   report progress, show recent artifacts, append review scores, and rebuild
+   blind hosted-review reports from saved data.
 9. `projects/website/` is the static UI served by the lab server. It calls the
-   API and loads artifacts through the viewer.
-10. Publishable result snapshots are copied from project `workspace/` folders
+   API for landing/dashboard flows, hosted review, CAD/voxel diffusion training
+   status, and artifact viewing.
+10. `projects/codex-direct-testing/` can package CadQuery written directly by
+    Codex in a chat thread into comparable JSONL/artifacts without treating it
+    as an online run.
+11. Publishable result snapshots are copied from project `workspace/` folders
     into `results/` by worker publish tooling.
 
 Important naming trap: `projects/cadybara-online-testing/` is currently named
@@ -69,6 +81,8 @@ Each active project may have an ignored `workspace/` folder:
   worker state, local examples, and local runs.
 - `projects/cadybara-online-testing/workspace/` for online test runs, review
   scores, and lab-assigned configs.
+- `projects/codex-direct-testing/workspace/` for direct Codex manual baseline
+  runs.
 - `projects/cad-diffusion/workspace/` for source datasets, prepared tokens,
   model checkpoints, sample runs, jobs, and training logs.
 - `projects/website/logs/` for local web/lab logs. These are runtime files, not
@@ -98,6 +112,11 @@ CAD diffusion sample artifacts are similar but start from generated tokens:
 tokens become a `CadProgram`, the program compiles to CadQuery, then the same
 STL/STEP/preview path is attempted.
 
+Hosted Cadybara API artifacts can also contain `hosted_model.stl`, decoded from
+server-returned `stl_base64`. Keep it alongside the local source/export result.
+If the returned source imports server-only helpers and local execution fails,
+that local failure remains data even though the hosted STL is viewable.
+
 CAD diffusion has one extra integrity rule: grammar validation and constrained
 decoding are allowed, but silent post-hoc repair is not. If the sampler emits an
 invalid sequence, record the parse error. If CadQuery compilation fails, record
@@ -125,6 +144,19 @@ CAD-likeness, usefulness, novelty, and manufacturability are more actionable
 than one hidden scalar. See `projects/cad-diffusion/HANDOFF.md` before changing
 that project.
 
+Voxel diffusion is a separate geometry-native loop:
+
+```text
+Fusion OBJ meshes
+  -> normalized voxel grids
+  -> dense 3D DDPM training
+  -> sampled occupancy grids
+  -> marching-cubes STL/preview export
+  -> geometry metrics and nearest-neighbor novelty
+```
+
+It is useful for direct shape learning, not for editable CAD reconstruction yet.
+
 ## Reviews And Grades
 
 The browser review flow appends 1-10 scores under
@@ -138,18 +170,38 @@ into one richer append-only grade/review record, but the current code still has
 two separate paths. Do not silently rewrite old review JSONL to force that
 convergence.
 
+`cadybara_online_testing.blind_report` reads saved run JSONL plus append-only
+review scores and writes a derived manifest/CSV/README report. It should never
+regenerate model outputs or rewrite source reviews.
+
 ## Hosted Product API
 
-The public hosted Cadybara API appears to live at `https://api.cadybara.com`.
-The app's API-key UI names `POST /api/agent/generate` with an `X-API-Key`
-header as the agent-facing endpoint. The exact body and response schema are not
-yet documented in this repo.
+The public hosted Cadybara API lives at `https://api.cadybara.com`. Agent
+generation uses `POST /api/agent/generate` with an `X-API-Key` header and a JSON
+body containing `prompt`, `response_mode`, optional `model`, and mesh deflection
+fields. The confirmed final response includes `generated_code`, `stl_base64`,
+`validation`, and `response_mode`.
 
-Until official endpoint examples are available, do not guess the hosted request
-schema in production code. When it is implemented, it should be a normal
-`ModelProvider` in `projects/local-running/cadybara/providers/`, selected by
-model config, and it should record hosted API failures as data in the same
-append-only JSONL flow as local Ollama failures.
+Use `response_mode: "sse"` for hosted smoke runs. Production sits behind an AWS
+ALB with a 60 second idle timeout; SSE progress/heartbeat events keep long
+generations alive while still returning the same final code/STL payload as JSON
+mode.
+
+Hosted generation is implemented as the `cadybara_api` provider in
+`projects/local-running/cadybara/providers/`. It is selected by model config and
+records hosted API failures as normal provider errors in the same append-only
+JSONL flow as local Ollama failures. The active hosted smoke config is
+`projects/cadybara-online-testing/configs/online_smoke.yaml`, which uses the
+five wall-planter prompts in
+`projects/cadybara-online-testing/prompts/wall_planter_agent_prompts.yaml`.
+The provider preserves hosted `stl_base64` as an artifact when it is available;
+if returned source code is not standalone locally, that source/export failure is
+still recorded as data.
+
+Follow-on hosted batches currently live beside the smoke config: blind
+wall-planter repeats, gapfill/hook/snowman prompt sets, and saved rate-limit
+probes. Treat those configs as experiment records; do not collapse them into one
+rewritten YAML just to make the directory shorter.
 
 ## Results Snapshots
 
@@ -158,6 +210,11 @@ first. Worker publish tooling copies JSONL, artifacts, reviews, and a manifest
 into `results/<experiment_id>/<timestamp_machine>/`.
 
 Do not write live output directly into `results/`.
+
+The current shareable hosted smoke snapshot is
+`results/cadybara_online_smoke_reps2/20260606_163617_windows/`. It is small
+enough to review in Git and exists to let collaborators inspect the hosted rows
+without pulling ignored worker state.
 
 ## Dedicated Worker Box
 

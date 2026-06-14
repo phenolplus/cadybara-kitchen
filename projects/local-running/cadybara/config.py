@@ -22,6 +22,12 @@ class ModelConfig(BaseModel):
     vision: bool = False
     disk_gb: float | None = Field(default=None, gt=0)
     num_thread: int | None = Field(default=None, gt=0)
+    api_key_env: str = "CADYBARA_API_KEY"
+    hosted_model_id: str | None = None
+    response_mode: Literal["json", "stl", "sse"] = "json"
+    linear_deflection: float = Field(default=0.1, gt=0)
+    angular_deflection: float = Field(default=0.1, gt=0)
+    unwrap_cadquery_prompt: bool = True
 
 
 class SeedConfig(BaseModel):
@@ -166,8 +172,14 @@ def _prune_hash_defaults(value: Any) -> Any:
         for key, item in value.items()
         if not (
             (key in {"disk_gb", "num_thread", "repair", "role"} and item is None)
+            or (key in {"hosted_model_id"} and item is None)
             or key == "role"
             or (key == "vision" and item is False)
+            or (key == "api_key_env" and item == "CADYBARA_API_KEY")
+            or key == "response_mode"
+            or (key == "linear_deflection" and item == 0.1)
+            or (key == "angular_deflection" and item == 0.1)
+            or (key == "unwrap_cadquery_prompt" and item is True)
         )
     }
     return pruned

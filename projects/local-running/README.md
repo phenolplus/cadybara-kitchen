@@ -1,12 +1,16 @@
 # Local Running
 
-`projects/local-running/` is the execution spine for Cadybara. Today its only
-real model provider is local Ollama, but this is also where a future hosted
-Cadybara API provider belongs. It owns the importable `cadybara` package, the
-shared CLI, provider adapters, CadQuery artifact generation, JSONL run records,
-model queue tooling, worker scripts, and most of the resume/retry logic.
+`projects/local-running/` is the execution spine for Cadybara. Its real
+providers are local Ollama and the hosted Cadybara Agent API. It owns the
+importable `cadybara` package, the shared CLI, provider adapters, CadQuery
+artifact generation, JSONL run records, model queue tooling, worker scripts, and
+most of the resume/retry logic.
 
 Read the repo-level `COMMON.md` first if the record/artifact flow is new.
+
+This is its own project, not a miscellaneous helper folder. Changes here should
+make sense for the runner/CLI/provider layer even when no website or lab UI is
+being edited.
 
 ## What This Project Owns
 
@@ -14,7 +18,8 @@ Read the repo-level `COMMON.md` first if the record/artifact flow is new.
 - `cadybara/config.py` validates YAML configs and computes config hashes.
 - `cadybara/runner.py` expands configs into deterministic cells, resumes
   completed work, retries failures, and appends JSONL rows.
-- `cadybara/providers/` contains the dry-run provider and Ollama provider.
+- `cadybara/providers/` contains the dry-run provider, Ollama provider, and
+  hosted Cadybara API provider.
 - `cadybara/cadquery_runner.py` executes model-written CadQuery as written and
   exports STL/STEP/PNG artifacts when it succeeds.
 - `cadybara/model_queue.py` checks, pulls, and tracks local Ollama models.
@@ -37,14 +42,16 @@ Read the repo-level `COMMON.md` first if the record/artifact flow is new.
    instruction prompt.
 3. Each cell gets a deterministic seed and resume key.
 4. The provider is chosen per model: `--dry-run` uses `DryRunProvider`;
-   `provider: ollama` uses `OllamaProvider` over the local Ollama API. Future
-   hosted API work should add another provider here rather than special-casing
-   generation in the lab server.
+   `provider: ollama` uses `OllamaProvider` over the local Ollama API; and
+   `provider: cadybara_api` uses the hosted Agent API over HTTPS. Hosted
+   generation stays here rather than being special-cased in the lab server.
 5. The returned text is scored by the current stub scorer and written into a
    `RunRecord`.
 6. For CadQuery mode, the record is handed to `write_cadquery_artifacts()`.
    The harness extracts code, checks a small blocklist, executes the code, and
-   expects a final `result` object.
+   expects a final `result` object. Hosted Cadybara rows can also carry a
+   server-exported STL; that STL is preserved even when local source execution
+   records an error.
 7. Every attempt is appended to JSONL. A CadQuery cell is complete only when an
    STL artifact exists and there is no render error.
 
@@ -138,10 +145,12 @@ default. It does not commit live `workspace/` data directly.
 
 - Only the `identity` prompt strategy is implemented.
 - The scorer is still a stub for automatic scoring.
-- Ollama is the only real provider.
-- Hosted Cadybara API support is not implemented yet. See
-  `../../docs/HOSTED_CADYBARA_API.md` for the discovered endpoint and unknown
-  request/response contract.
+- Hosted Cadybara API support is implemented for `response_mode: "json"`,
+  `"stl"`, and `"sse"`. Use `"sse"` for hosted smoke runs because the
+  production load balancer can time out quiet JSON requests around 60 seconds.
+  This repo still prefers JSON/SSE final payloads over binary-only STL mode
+  because source-code grading needs `generated_code`. See
+  `../../docs/HOSTED_CADYBARA_API.md`.
 - CadQuery execution is intentionally not repaired or normalized into success.
 - Model cleanup can remove configured local Ollama models unless disabled with
   `CADYBARA_DISABLE_MODEL_CLEANUP=1`; worker service setup disables cleanup.

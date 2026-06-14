@@ -1,0 +1,72 @@
+- id: phone_stand_lip
+  category: simple_fixture
+  text: |
+    Create a 3D-printable phone stand with a flat base, angled back support,
+    front retaining lip, and a cable pass-through slot.
+
+- id: shelf_bracket_ribbed
+  category: load_bearing_bracket
+  text: |
+    Create an L-shaped shelf bracket with two wall screw holes, two shelf screw
+    holes, and triangular ribs between the vertical and horizontal plates.
+
+- id: cable_clip_screw_mount
+  category: clip
+  text: |
+    Create a screw-mounted cable clip for holding a 6 mm cable, with an open
+    snap gap and one countersunk mounting hole.
+
+- id: project_box_with_lid
+  category: enclosure
+  text: |
+    Create a small rectangular electronics project box with hollow walls,
+    four internal screw posts, and a separate-looking flat lid plate on top
+    with four matching corner holes.
+
+- id: pegboard_double_hook
+  category: storage_hook
+  text: |
+    Create a double hook for a pegboard: two round rear pegs that fit into
+    pegboard holes and two forward hooks for hanging light hand tools.
+
+- id: drawer_pull_handle
+  category: handle
+  text: |
+    Create a simple drawer pull handle with two mounting bosses, screw holes,
+    and a raised curved grip between the bosses.
+
+- id: drone_prop_guard
+  category: curved_guard
+  text: |
+    Create a lightweight circular drone propeller guard ring with four mounting
+    tabs and four thin spokes connecting the tabs to the ring.
+
+- id: spur_gear_knob
+  category: gear_like
+  text: |
+    Create a small spur-gear-like knob with 24 teeth around the outside, a
+    central hub, and a 6 mm shaft hole through the center.
+
+- id: hinge_leaf_pair
+  category: hinge
+  text: |
+    Create a small printable hinge made from two rectangular leaves, alternating
+    barrel knuckles along one edge, and screw holes in each leaf.
+
+- id: nozzle_holder_block
+  category: organizer
+  text: |
+    Create a desktop block that holds five 3D-printer nozzles in a row, with
+    labeled-looking raised pads and conical entry chamfers.
+
+- id: bike_light_clamp
+  category: clamp
+  text: |
+    Create a handlebar clamp mount for a small bike light, with a C-shaped
+    clamp body, two bolt ears, and a flat top platform for the light.
+
+- id: measuring_scoop
+  category: vessel
+  text: |
+    Create a small measuring scoop with a rounded cup, flat bottom, pouring
+    spout, and short handle.

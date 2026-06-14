@@ -1,0 +1,241 @@
+{
+  "experiment_id": "cadybara_online_smoke_reps2",
+  "generated_at_local": "2026-06-06T16:36:17",
+  "config_path": "projects/cadybara-online-testing/configs/online_smoke_reps2.yaml",
+  "prompt_file": "projects/cadybara-online-testing/prompts/wall_planter_agent_prompts.yaml",
+  "source": "Hosted Cadybara API via provider=cadybara_api; no local model generation.",
+  "requested_cells": 10,
+  "rows_written": 10,
+  "hosted_stl_rows": 5,
+  "provider_error_rows": 5,
+  "local_source_error_rows": 2,
+  "by_prompt": {
+    "planter_01_minimal": {
+      "rows": 2,
+      "hosted_stl_rows": 2,
+      "provider_error_rows": 0,
+      "local_source_error_rows": 2,
+      "latency_ms": [
+        36230,
+        45612
+      ]
+    },
+    "planter_03_mounting": {
+      "rows": 2,
+      "hosted_stl_rows": 2,
+      "provider_error_rows": 0,
+      "local_source_error_rows": 0,
+      "latency_ms": [
+        40267,
+        39950
+      ]
+    },
+    "planter_05_shape": {
+      "rows": 2,
+      "hosted_stl_rows": 0,
+      "provider_error_rows": 2,
+      "local_source_error_rows": 0,
+      "latency_ms": [
+        61101,
+        61231
+      ]
+    },
+    "planter_07_thickness": {
+      "rows": 2,
+      "hosted_stl_rows": 0,
+      "provider_error_rows": 2,
+      "local_source_error_rows": 0,
+      "latency_ms": [
+        60979,
+        60943
+      ]
+    },
+    "planter_10_full": {
+      "rows": 2,
+      "hosted_stl_rows": 1,
+      "provider_error_rows": 1,
+      "local_source_error_rows": 0,
+      "latency_ms": [
+        60865,
+        36137
+      ]
+    }
+  },
+  "rows": [
+    {
+      "run_id": "03d283d7-9314-4490-8252-06d522698d7f",
+      "seed_id": "planter_01_minimal",
+      "repetition": 0,
+      "provider": "cadybara_api",
+      "prompt_sent": "Make me a planter I can put on my wall.",
+      "finish_reason": "validation_valid",
+      "latency_ms": 36230,
+      "provider_error": null,
+      "local_source_error_first_line": "No module named 'planter_body'",
+      "stl": "projects/cadybara-online-testing/workspace/runs/cadybara_online_smoke_reps2_manual/artifacts/cadybara-agent-default/planter_01_minimal/cadybara-agent-default_planter_01_minimal_identity_026dbd648314c5e8_t_0.0_r_0/03d283d7/hosted_model.stl",
+      "preview_png": "projects/cadybara-online-testing/workspace/runs/cadybara_online_smoke_reps2_manual/artifacts/cadybara-agent-default/planter_01_minimal/cadybara-agent-default_planter_01_minimal_identity_026dbd648314c5e8_t_0.0_r_0/03d283d7/preview.png",
+      "validation": {
+        "valid": true,
+        "confidence": 1.0,
+        "issues": [],
+        "brief_reason": "Modular assembly with planter body, inner basket, and mounting bracket was successfully implemented and fits the design brief.",
+        "attempt_count": 1,
+        "max_attempts": 3
+      }
+    },
+    {
+      "run_id": "440c8bb2-4cbf-4340-adb4-0dc8b35a7727",
+      "seed_id": "planter_01_minimal",
+      "repetition": 1,
+      "provider": "cadybara_api",
+      "prompt_sent": "Make me a planter I can put on my wall.",
+      "finish_reason": "validation_valid",
+      "latency_ms": 45612,
+      "provider_error": null,
+      "local_source_error_first_line": "No module named 'planter_body'",
+      "stl": "projects/cadybara-online-testing/workspace/runs/cadybara_online_smoke_reps2_manual/artifacts/cadybara-agent-default/planter_01_minimal/cadybara-agent-default_planter_01_minimal_identity_026dbd648314c5e8_t_0.0_r_1/440c8bb2/hosted_model.stl",
+      "preview_png": "projects/cadybara-online-testing/workspace/runs/cadybara_online_smoke_reps2_manual/artifacts/cadybara-agent-default/planter_01_minimal/cadybara-agent-default_planter_01_minimal_identity_026dbd648314c5e8_t_0.0_r_1/440c8bb2/preview.png",
+      "validation": {
+        "valid": true,
+        "confidence": 1.0,
+        "issues": [],
+        "brief_reason": "The wall-mounted planter assembly correctly implements the French cleat system and drainage reservoir with the specified 0.3mm clearances.",
+        "attempt_count": 1,
+        "max_attempts": 3
+      }
+    },
+    {
+      "run_id": "8b531f48-9a75-4d59-a942-9561823e9b8b",
+      "seed_id": "planter_03_mounting",
+      "repetition": 0,
+      "provider": "cadybara_api",
+      "prompt_sent": "Design a wall-mounted planter that holds a small potted plant and can be\nhung on a nail or screw in drywall.",
+      "finish_reason": "validation_valid",
+      "latency_ms": 40267,
+      "provider_error": null,
+      "local_source_error_first_line": null,
+      "stl": "projects/cadybara-online-testing/workspace/runs/cadybara_online_smoke_reps2_manual/artifacts/cadybara-agent-default/planter_03_mounting/cadybara-agent-default_planter_03_mounting_identity_f561fc4b7468a798_t_0.0_r_0/8b531f48/model.stl",
+      "preview_png": "projects/cadybara-online-testing/workspace/runs/cadybara_online_smoke_reps2_manual/artifacts/cadybara-agent-default/planter_03_mounting/cadybara-agent-default_planter_03_mounting_identity_f561fc4b7468a798_t_0.0_r_0/8b531f48/preview.png",
+      "validation": {
+        "valid": true,
+        "confidence": 1.0,
+        "issues": [],
+        "brief_reason": "A hexagonal wall-mounted planter with a tapered internal cavity and a functional keyhole slot has been correctly implemented.",
+        "attempt_count": 1,
+        "max_attempts": 3
+      }
+    },
+    {
+      "run_id": "46bd4de6-6f3a-4fe9-b9a8-04dd80804020",
+      "seed_id": "planter_03_mounting",
+      "repetition": 1,
+      "provider": "cadybara_api",
+      "prompt_sent": "Design a wall-mounted planter that holds a small potted plant and can be\nhung on a nail or screw in drywall.",
+      "finish_reason": "validation_valid",
+      "latency_ms": 39950,
+      "provider_error": null,
+      "local_source_error_first_line": null,
+      "stl": "projects/cadybara-online-testing/workspace/runs/cadybara_online_smoke_reps2_manual/artifacts/cadybara-agent-default/planter_03_mounting/cadybara-agent-default_planter_03_mounting_identity_f561fc4b7468a798_t_0.0_r_1/46bd4de6/model.stl",
+      "preview_png": "projects/cadybara-online-testing/workspace/runs/cadybara_online_smoke_reps2_manual/artifacts/cadybara-agent-default/planter_03_mounting/cadybara-agent-default_planter_03_mounting_identity_f561fc4b7468a798_t_0.0_r_1/46bd4de6/preview.png",
+      "validation": {
+        "valid": true,
+        "confidence": 1.0,
+        "issues": [],
+        "brief_reason": "The code successfully implements the 120x100x110mm hexagonal planter with a tapered internal cavity, keyhole mounting slot, and back-face alignment lip as specified.",
+        "attempt_count": 1,
+        "max_attempts": 3
+      }
+    },
+    {
+      "run_id": "2418d768-0be8-4acf-88d8-797ede8588c7",
+      "seed_id": "planter_05_shape",
+      "repetition": 0,
+      "provider": "cadybara_api",
+      "prompt_sent": "Design a cylindrical wall-mounted planter about the size of a coffee mug,\nopen at the top, that holds a small potted plant and hangs flat against\nthe wall on a single screw.",
+      "finish_reason": null,
+      "latency_ms": 61101,
+      "provider_error": "Cadybara API POST /api/agent/generate failed with HTTP 504: <html>\r\n<head><title>504 Gateway Time-out</title></head>\r\n<body>\r\n<center><h1>504 Gateway Time-out</h1></center>\r\n</body>\r\n</html>\r\n",
+      "local_source_error_first_line": null,
+      "stl": null,
+      "preview_png": null,
+      "validation": null
+    },
+    {
+      "run_id": "ff508ce7-0bd2-4873-8eb4-55b8415ec531",
+      "seed_id": "planter_05_shape",
+      "repetition": 1,
+      "provider": "cadybara_api",
+      "prompt_sent": "Design a cylindrical wall-mounted planter about the size of a coffee mug,\nopen at the top, that holds a small potted plant and hangs flat against\nthe wall on a single screw.",
+      "finish_reason": null,
+      "latency_ms": 61231,
+      "provider_error": "Cadybara API POST /api/agent/generate failed with HTTP 504: <html>\r\n<head><title>504 Gateway Time-out</title></head>\r\n<body>\r\n<center><h1>504 Gateway Time-out</h1></center>\r\n</body>\r\n</html>\r\n",
+      "local_source_error_first_line": null,
+      "stl": null,
+      "preview_png": null,
+      "validation": null
+    },
+    {
+      "run_id": "2d08945d-689a-430d-b62a-a11d936e041c",
+      "seed_id": "planter_07_thickness",
+      "repetition": 0,
+      "provider": "cadybara_api",
+      "prompt_sent": "Design a cylindrical 3D-printable wall-mounted planter, 90 mm tall and\n80 mm outer diameter, with a 3 mm wall thickness, an open top, and a flat\nback panel containing one mounting hole sized for a #8 screw.",
+      "finish_reason": null,
+      "latency_ms": 60979,
+      "provider_error": "Cadybara API POST /api/agent/generate failed with HTTP 504: <html>\r\n<head><title>504 Gateway Time-out</title></head>\r\n<body>\r\n<center><h1>504 Gateway Time-out</h1></center>\r\n</body>\r\n</html>\r\n",
+      "local_source_error_first_line": null,
+      "stl": null,
+      "preview_png": null,
+      "validation": null
+    },
+    {
+      "run_id": "0a44344d-9f26-4793-bbdb-6cf5fe473c9c",
+      "seed_id": "planter_07_thickness",
+      "repetition": 1,
+      "provider": "cadybara_api",
+      "prompt_sent": "Design a cylindrical 3D-printable wall-mounted planter, 90 mm tall and\n80 mm outer diameter, with a 3 mm wall thickness, an open top, and a flat\nback panel containing one mounting hole sized for a #8 screw.",
+      "finish_reason": null,
+      "latency_ms": 60943,
+      "provider_error": "Cadybara API POST /api/agent/generate failed with HTTP 504: <html>\r\n<head><title>504 Gateway Time-out</title></head>\r\n<body>\r\n<center><h1>504 Gateway Time-out</h1></center>\r\n</body>\r\n</html>\r\n",
+      "local_source_error_first_line": null,
+      "stl": null,
+      "preview_png": null,
+      "validation": null
+    },
+    {
+      "run_id": "19bfaca9-1759-4c53-917f-8ae8475f80e6",
+      "seed_id": "planter_10_full",
+      "repetition": 0,
+      "provider": "cadybara_api",
+      "prompt_sent": "Design a 3D-printable wall-mounted planter with the following specifications.\nThe body is a hollow cylinder, 80 mm outer diameter, 90 mm tall, with a\nuniform 3 mm wall thickness, open at the top and closed at the bottom. The\nbottom of the cylinder contains four 3 mm diameter drainage holes arranged\nin a square pattern, each centered 15 mm from the cylinder's central axis.\nThe back is a flat rectangular panel, 100 mm tall x 90 mm wide x 4 mm thick,\ntangent to the outside of the cylinder along a vertical line, and extending\n5 mm above the cylinder's top edge and 5 mm below its bottom edge. The back\npanel contains one keyhole-shaped mounting slot centered horizontally, with\nits top edge 15 mm below the top of the back panel: an 8 mm diameter\ncircular opening with a 4 mm wide x 10 mm tall rectangular slot extending\ndownward from the circle's center, sized to accept a #8 pan-head screw. All\nexternal edges except the open top rim have a 1 mm fillet. The model is a\nsingle watertight solid suitable for FDM 3D printing without supports when\noriented with the back panel flat on the print bed.",
+      "finish_reason": null,
+      "latency_ms": 60865,
+      "provider_error": "Cadybara API POST /api/agent/generate failed with HTTP 504: <html>\r\n<head><title>504 Gateway Time-out</title></head>\r\n<body>\r\n<center><h1>504 Gateway Time-out</h1></center>\r\n</body>\r\n</html>\r\n",
+      "local_source_error_first_line": null,
+      "stl": null,
+      "preview_png": null,
+      "validation": null
+    },
+    {
+      "run_id": "9e239029-4907-403f-a501-cb49d53e71d7",
+      "seed_id": "planter_10_full",
+      "repetition": 1,
+      "provider": "cadybara_api",
+      "prompt_sent": "Design a 3D-printable wall-mounted planter with the following specifications.\nThe body is a hollow cylinder, 80 mm outer diameter, 90 mm tall, with a\nuniform 3 mm wall thickness, open at the top and closed at the bottom. The\nbottom of the cylinder contains four 3 mm diameter drainage holes arranged\nin a square pattern, each centered 15 mm from the cylinder's central axis.\nThe back is a flat rectangular panel, 100 mm tall x 90 mm wide x 4 mm thick,\ntangent to the outside of the cylinder along a vertical line, and extending\n5 mm above the cylinder's top edge and 5 mm below its bottom edge. The back\npanel contains one keyhole-shaped mounting slot centered horizontally, with\nits top edge 15 mm below the top of the back panel: an 8 mm diameter\ncircular opening with a 4 mm wide x 10 mm tall rectangular slot extending\ndownward from the circle's center, sized to accept a #8 pan-head screw. All\nexternal edges except the open top rim have a 1 mm fillet. The model is a\nsingle watertight solid suitable for FDM 3D printing without supports when\noriented with the back panel flat on the print bed.",
+      "finish_reason": "validation_valid",
+      "latency_ms": 36137,
+      "provider_error": null,
+      "local_source_error_first_line": null,
+      "stl": "projects/cadybara-online-testing/workspace/runs/cadybara_online_smoke_reps2_manual/artifacts/cadybara-agent-default/planter_10_full/cadybara-agent-default_planter_10_full_identity_2878cb90d6e6cb8c_t_0.0_r_1/9e239029/model.stl",
+      "preview_png": "projects/cadybara-online-testing/workspace/runs/cadybara_online_smoke_reps2_manual/artifacts/cadybara-agent-default/planter_10_full/cadybara-agent-default_planter_10_full_identity_2878cb90d6e6cb8c_t_0.0_r_1/9e239029/preview.png",
+      "validation": {
+        "valid": true,
+        "confidence": 1.0,
+        "issues": [],
+        "brief_reason": "The wall-mounted planter was correctly implemented with the specified dimensions, tangency, drainage, and keyhole mounting features as a single solid.",
+        "attempt_count": 1,
+        "max_attempts": 3
+      }
+    }
+  ]
+}

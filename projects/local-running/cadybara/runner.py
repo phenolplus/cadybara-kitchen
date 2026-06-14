@@ -17,6 +17,7 @@ from pydantic import ValidationError
 from cadybara.cadquery_runner import cadquery_prompt, write_cadquery_artifacts
 from cadybara.config import ExperimentConfig, ModelConfig, config_hash, load_config
 from cadybara.providers.base import GenerationStopped, ModelProvider, ProviderResponse
+from cadybara.providers.cadybara_api import CadybaraApiProvider
 from cadybara.providers.dry_run import DryRunProvider
 from cadybara.providers.ollama import OllamaProvider
 from cadybara.records import RunRecord, resume_key
@@ -129,6 +130,21 @@ def provider_for_model(model: ModelConfig, *, dry_run: bool) -> tuple[str, Model
                 num_thread=model.num_thread,
             ),
         )
+    if model.provider == "cadybara_api":
+        return (
+            model.provider,
+            CadybaraApiProvider(
+                model_name=model.name,
+                base_url=model.base_url,
+                timeout=model.timeout_seconds,
+                api_key_env=model.api_key_env,
+                hosted_model_id=model.hosted_model_id,
+                response_mode=model.response_mode,
+                linear_deflection=model.linear_deflection,
+                angular_deflection=model.angular_deflection,
+                unwrap_prompt=model.unwrap_cadquery_prompt,
+            ),
+        )
     raise ValueError(f"Unsupported provider: {model.provider}")
 
 
@@ -172,8 +188,10 @@ def skip_cad_artifacts() -> bool:
     return os.environ.get("CADYBARA_SKIP_CAD_ARTIFACTS", "").lower() in {"1", "true", "yes"}
 
 
-def provider_prompt(config: ExperimentConfig, variant_text: str) -> str:
+def provider_prompt(config: ExperimentConfig, model: ModelConfig, variant_text: str) -> str:
     if config.output_mode == "cadquery":
+        if model.provider == "cadybara_api":
+            return variant_text
         return cadquery_prompt(variant_text)
     return variant_text
 
@@ -233,6 +251,8 @@ def record_is_complete(record: RunRecord) -> bool:
     if record.provider == "dry_run":
         return True
     if record.output_mode == "cadquery":
+        if record.provider == "cadybara_api" and record.error is None:
+            return bool((record.artifacts or {}).get("stl"))
         return record.render_error is None and bool((record.artifacts or {}).get("stl"))
     return True
 
@@ -367,6 +387,7 @@ def make_record(
         prompt_eval_duration_ms=response.prompt_eval_duration_ms if response is not None else None,
         eval_duration_ms=response.eval_duration_ms if response is not None else None,
         provider_seed=response.provider_seed if response is not None else None,
+        provider_metadata=response.provider_metadata if response is not None else {},
         scores=scores,
         artifacts=artifacts or {},
         render_error=render_error,
@@ -532,7 +553,7 @@ def run_visual_repair_config(
                     break
 
                 if round_number == 1:
-                    prompt_sent = provider_prompt(config, cell.variant.text)
+                    prompt_sent = provider_prompt(config, cell.model, cell.variant.text)
                     feedback_image_path = None
                     feedback_source_run_id = None
                     images = None
@@ -622,6 +643,7 @@ def run_visual_repair_config(
                         record=record,
                         prompt_sent=prompt_sent,
                         artifact_root=artifact_root_for_config(config),
+                        hosted_stl_base64=response.hosted_stl_base64,
                     )
                     record = record.model_copy(
                         update={"artifacts": artifacts, "render_error": render_error},
@@ -636,7 +658,13 @@ def run_visual_repair_config(
                 if error is not None:
                     errors += 1
                 status = "repair round recorded"
-                if record.render_error:
+                if (
+                    record.provider == "cadybara_api"
+                    and record.render_error
+                    and (record.artifacts or {}).get("stl")
+                ):
+                    status = "repair round hosted STL ready; local source failed"
+                elif record.render_error:
                     status = "repair round render failed"
                 elif (record.artifacts or {}).get("stl"):
                     status = "repair round STL ready"
@@ -779,7 +807,7 @@ def run_config(
                 attempt = attempts_by_key[key] + 1
                 seed = sampling_seed_for_attempt(key, attempt)
                 provider_name, provider = provider_for_model(cell.model, dry_run=dry_run)
-                prompt_sent = provider_prompt(config, cell.variant.text)
+                prompt_sent = provider_prompt(config, cell.model, cell.variant.text)
                 if on_cell_start is not None:
                     on_cell_start(cell, attempt)
                 if snapshot_buffer is not None and not dry_run:
@@ -837,6 +865,7 @@ def run_config(
                         record=record,
                         prompt_sent=prompt_sent,
                         artifact_root=artifact_root_for_config(config),
+                        hosted_stl_base64=response.hosted_stl_base64,
                     )
                     record = record.model_copy(
                         update={"artifacts": artifacts, "render_error": render_error},
@@ -849,7 +878,14 @@ def run_config(
                 if error is not None:
                     errors += 1
                 if record_is_complete(record):
-                    status = "STL ready" if config.output_mode == "cadquery" and not dry_run else "complete"
+                    if (
+                        record.provider == "cadybara_api"
+                        and record.render_error
+                        and (record.artifacts or {}).get("stl")
+                    ):
+                        status = "hosted STL ready; local source failed"
+                    else:
+                        status = "STL ready" if config.output_mode == "cadquery" and not dry_run else "complete"
                 else:
                     status = "attempt failed"
                 print(

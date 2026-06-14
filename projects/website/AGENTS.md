@@ -1,9 +1,9 @@
 # AGENTS.md - Website
 
 You are in `projects/website/`, the static browser side of Cadybara. Your job
-is to improve the landing page, project dashboard, CAD diffusion training page,
-visual assets, vanilla JS behavior, and Three.js viewer without drifting into
-the Python runner or lab API implementation.
+is to improve the landing page, project dashboard, hosted review board, CAD and
+voxel diffusion training pages, visual assets, vanilla JS behavior, and Three.js
+viewer without drifting into the Python runner or lab API implementation.
 
 Read this file like a note from someone who just worked here: the most important
 thing is not just "keep it vanilla." It is to keep the interface honest about
@@ -33,6 +33,17 @@ For CAD diffusion page work, also read:
 - `projects/website/lab/cad-diffusion.css`
 - `projects/website/lab/cad-diffusion.js`
 - `projects/cadybara-online-testing/cadybara_online_testing/lab_server.py`
+
+For voxel diffusion or hosted review work, also read:
+
+- `projects/website/lab/voxel-diffusion.html`
+- `projects/website/lab/voxel-diffusion.css`
+- `projects/website/lab/voxel-diffusion.js`
+- `projects/website/lab/hosted-review.html`
+- `projects/website/lab/hosted-review.css`
+- `projects/website/lab/hosted-review.js`
+- `projects/cadybara-online-testing/cadybara_online_testing/lab_server.py`
+- `projects/cadybara-online-testing/cadybara_online_testing/reviews.py`
 
 For viewer work, also read:
 
@@ -80,6 +91,13 @@ change an API expectation in the website, update
   - Live CAD diffusion training status page.
   - Polls `/api/cad-diffusion/status`.
   - Posts start/stop to CAD diffusion endpoints.
+- `/lab/voxel-diffusion.html`
+  - Live voxel diffusion training status page.
+  - Polls `/api/voxel-diffusion/status`.
+  - Posts start/stop to voxel diffusion endpoints.
+- `/lab/hosted-review.html`
+  - Hosted API review board for saved STL attempts.
+  - Supports blind mode and combined config review sessions.
 - `/viewer/`
   - Three.js viewer for JSON artifacts and STL meshes.
 - `lab/app.js`
@@ -174,6 +192,17 @@ The CAD diffusion page uses:
 - `POST /api/cad-diffusion/train/start`
 - `POST /api/cad-diffusion/train/stop`
 
+The voxel diffusion page uses:
+
+- `GET /api/voxel-diffusion/status`
+- `POST /api/voxel-diffusion/train/start`
+- `POST /api/voxel-diffusion/train/stop`
+
+The hosted review page uses:
+
+- `GET /api/review`
+- `POST /api/review/score`
+
 The preserved `lab/app.js` richer surface expects:
 
 - `GET /api/status`
@@ -214,8 +243,11 @@ After UI edits:
      "/lab/",
      "/lab/dashboard.html",
      "/lab/cad-diffusion.html",
+     "/lab/voxel-diffusion.html",
+     "/lab/hosted-review.html",
      "/viewer/",
      "/api/cad-diffusion/status",
+     "/api/voxel-diffusion/status",
      "/api/run_status"
    )
    foreach ($path in $paths) {
@@ -230,6 +262,8 @@ After UI edits:
    node --check projects/website/lab/landing.js
    node --check projects/website/lab/dashboard.js
    node --check projects/website/lab/cad-diffusion.js
+   node --check projects/website/lab/voxel-diffusion.js
+   node --check projects/website/lab/hosted-review.js
    node --check projects/website/viewer/app.js
    ```
 

@@ -7,6 +7,7 @@ from typing import Any
 
 from cadybara.records import RunRecord
 from cadybara.runner import read_jsonl_records
+from cadybara_online_testing.progress import record_has_viewable_stl
 
 
 def review_path(experiment_id: str) -> Path:
@@ -103,7 +104,9 @@ def record_to_review_item(record: RunRecord) -> dict[str, Any]:
         "error": record.error,
         "render_error": record.render_error,
         "artifacts": artifacts,
-        "is_renderable": stl_path is not None and record.error is None and record.render_error is None,
+        "provider_metadata": record.provider_metadata,
+        "output_preview": record.output[:1200],
+        "is_renderable": record_has_viewable_stl(record),
         "viewer_url": f"/viewer/?stl=/{stl_path}" if stl_path else None,
         "code_url": f"/{code_path}" if code_path else None,
     }

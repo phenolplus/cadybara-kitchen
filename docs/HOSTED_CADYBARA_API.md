@@ -1,161 +1,347 @@
-# Hosted Cadybara API Notes
+# Hosted Cadybara Agent API
 
-This note captures the current shared understanding of the public Cadybara
-product API. It exists because the repo phrase "online testing" is easy to
-misread: in this codebase it currently means the local lab control plane, not
-the hosted product API.
+This note is the current local truth for using the hosted Cadybara product API
+from this repo. It is intentionally specific because the phrase "online
+testing" is overloaded here: `projects/cadybara-online-testing/` is the local
+lab control plane, while `https://api.cadybara.com` is the hosted product API.
 
-## What Is Confirmed
+## Current Status
 
-- Public app: `https://app.cadybara.com`
-- Public marketing/LLM context: `https://www.cadybara.com/llms.txt`
-- Hosted API base discovered from the app bundle:
-  `https://api.cadybara.com`
-- The app stores browser login data in localStorage keys named
-  `prompt_forge_token` and `prompt_forge_user`.
-- Authenticated app calls use `Authorization: Bearer <token>`.
-- The app's API-key dialog says agent integrations should call:
+As of 2026-06-06 from Arvin's Windows machine:
 
-```text
-POST https://api.cadybara.com/api/agent/generate
-X-API-Key: <key>
-```
+- `https://api.cadybara.com` is reachable.
+- `GET /health` returns `200 {"status":"ok"}`.
+- `GET /openapi.json` returns `200` and documents `POST /api/agent/generate`.
+- `GET /api/agent/generate` returns `405`, correctly allowing only `POST`.
+- `POST /api/agent/generate` without `X-API-Key` returns `401`.
+- `POST /api/agent/generate` with a fake API key returns `401 Invalid API key`.
+- `POST /api/agent/generate` with Arvin's key and a tiny cube prompt returned
+  `200` in about `23.6s`.
+- The tiny successful response contained `generated_code`, `stl_base64`,
+  `validation`, and `response_mode: "json"`.
+- The first wall-planter prompt later returned `200` in about `49.1s`, so the
+  real prompt ladder is not categorically blocked.
+- Some wall-planter attempts have also produced `504 Gateway Timeout` at about
+  `60s` through the hosted load balancer. Treat that as hosted generation
+  variability or prompt/model timeout, not local connectivity failure.
+- On 2026-06-07 the API owner confirmed the production API sits behind an AWS
+  ALB with a 60 second idle timeout and deployed `response_mode: "sse"` to keep
+  long generations alive. Retrying the five timed-out wall-planter cells with
+  SSE returned hosted STLs for all five in `42.6s` to `96.3s`.
+- A later 2026-06-07 rate-limit probe returned `429 RATE_LIMITED` immediately
+  for ten attempted calls, with the message `Daily limit reached (15/15
+  queries)`. For this key/tier, the observed daily generation limit is 15, not
+  20.
+- One successful wall-planter `generated_code` imported helper modules named
+  `planter` and `bracket`. The hosted STL was still returned, but the source was
+  not a standalone local CadQuery script.
 
-- The API-key dialog copy says this endpoint needs no browser login when an
-  API key is supplied.
-- Unauthenticated `GET https://api.cadybara.com/api/models` returns `401`.
-- Unauthenticated `GET https://api.cadybara.com/api/auth/me` returns `401`.
-- `GET https://api.cadybara.com/api/agent/generate` returns `405`, which
-  confirms the route exists but only accepts other methods.
-- Unauthenticated `POST https://api.cadybara.com/api/agent/generate` returns
-  `401`, which confirms authentication is required.
-
-## What Is Not Yet Known
-
-Do not implement against guesses for these fields unless the user explicitly
-accepts a provisional adapter.
-
-- Exact `POST /api/agent/generate` request body.
-- Exact response shape and where generated Python/CadQuery code appears.
-- Whether the endpoint returns only source code or also render/export artifacts.
-- Whether the endpoint accepts model, temperature, max-token, seed, or mode
-  parameters, and what names those fields use.
-- Error response shape for invalid prompts, generation failures, rate limits,
-  quota exhaustion, and bad API keys.
-- Rate-limit headers or usage/quota headers.
-- Whether prompt text should be wrapped locally in the repo's CadQuery prompt,
-  or whether the hosted endpoint expects raw natural language.
-
-## Public App Routes Found In The Bundle
-
-The app bundle referenced these hosted API routes. They are useful for
-orientation, but only `POST /api/agent/generate` is currently known to be
-intended for API-key agents.
+Sanitized live diagnostics are stored under:
 
 ```text
-/api/agent/generate
-/api/auth/api-keys
-/api/auth/check-username
-/api/auth/google-login
-/api/auth/invite-link
-/api/auth/login
-/api/auth/me
-/api/auth/register-with-invite
-/api/auth/session
-/api/chat/build
-/api/chat/like
-/api/chat/stream
-/api/execute
-/api/export-glb
-/api/export-step
-/api/export-stl
-/api/import-stl
-/api/models
-/api/parse-params
-/api/projects
-/api/projects/{id}
-/api/projects/{id}/share
-/api/projects/{id}/versions
-/api/projects/{id}/versions/{version}
+projects/cadybara-online-testing/workspace/hosted_api_smoke/
 ```
 
-## How This Should Fit This Repo
+Do not commit API keys, response bodies with secrets, or workspace diagnostics.
 
-The provider boundary is in `projects/local-running/`:
+## Base URLs
 
-- `cadybara/providers/base.py` defines `ModelProvider` and `ProviderResponse`.
-- `cadybara/providers/ollama.py` is the current real provider example.
-- `cadybara/runner.py::provider_for_model()` selects the provider from each
-  model config.
+| Environment | URL |
+| --- | --- |
+| Local product API | `http://localhost:8008` |
+| Production product API | `https://api.cadybara.com` |
+| Web app | `https://app.cadybara.com` |
 
-A hosted Cadybara integration should therefore be added as a new provider in
-`projects/local-running/`, not bolted directly into the lab server.
+The public marketing/LLM context page has also existed at
+`https://www.cadybara.com/llms.txt`.
 
-Recommended future shape once official request/response docs are available:
+## Auth Split
 
-- Add a `CadybaraApiProvider` implementing `ModelProvider`.
-- Read the API key from `CADYBARA_API_KEY`; never commit it or put it in YAML.
-- Use `base_url: "https://api.cadybara.com"` in configs so test/staging API
-  hosts can be swapped without code changes.
-- Use a provider name such as `cadybara_api` to distinguish hosted API rows from
-  local `ollama` rows in JSONL.
-- Keep CadQuery artifact export and grading local unless the hosted endpoint is
-  explicitly documented to return equivalent artifacts.
-- Preserve provider failures as JSONL data. A hosted API error should not be
-  hidden or converted into a successful CAD result.
+There are two auth modes:
 
-## What To Ask The API Owner For
+- Agent generation uses an API key in `X-API-Key`.
+- Browser/session/project/chat/model-management endpoints use JWT bearer auth.
 
-Before writing the hosted provider, get one official example for the agent
-endpoint. A complete answer should include:
+Agent requests:
 
-```bash
-curl -X POST "https://api.cadybara.com/api/agent/generate" \
-  -H "Content-Type: application/json" \
-  -H "X-API-Key: $CADYBARA_API_KEY" \
-  -d '{ ... exact body ... }'
+```http
+X-API-Key: pfk_<your-key>
+Content-Type: application/json
 ```
 
-Also ask for:
+Session endpoints:
 
-- A successful JSON response example.
-- A bad-key response example.
-- A validation-error response example.
-- A rate-limit/quota response example.
-- Whether the returned source is guaranteed to be CadQuery/Python.
-- Whether the server already executes/renders code.
+```http
+Authorization: Bearer <jwt-token>
+Content-Type: application/json
+```
 
-## Verification Commands Used
+### Creating An API Key
 
-These commands are safe probes that do not require a key:
+Use the web app or the JWT endpoints. The full plaintext key is returned once;
+store it in a secret store or environment variable, not in YAML.
+
+```http
+POST /api/auth/login
+Content-Type: application/json
+
+{ "username": "...", "password": "..." }
+```
+
+`POST /api/auth/login` returns:
+
+```json
+{
+  "token": "...",
+  "user": {
+    "id": "...",
+    "username": "...",
+    "tier": "..."
+  },
+  "usage": {}
+}
+```
+
+Then:
+
+```http
+POST /api/auth/api-keys
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{ "name": "My Agent Key" }
+```
+
+The create response includes:
+
+```json
+{
+  "id": "...",
+  "key": "pfk_...",
+  "prefix": "pfk_...",
+  "name": "My Agent Key",
+  "created_at": "..."
+}
+```
+
+Only `key` is the full plaintext secret.
+
+API key management endpoints require JWT bearer auth:
+
+```http
+GET    /api/auth/api-keys
+POST   /api/auth/api-keys
+DELETE /api/auth/api-keys/{id}
+```
+
+`GET /api/models` also requires JWT bearer auth. An agent API key alone is not
+expected to work there.
+
+## Agent Endpoint
+
+### `POST /api/agent/generate`
+
+This is equivalent to submitting a prompt in a new chat session in agent mode
+and waiting for the whole server-side loop to finish. Internally, the server
+runs the same style of agentic workflow as `/api/chat/stream`:
+
+```text
+intent -> design -> implement -> validation -> repair/validation if needed -> exit
+```
+
+The client does not receive the stream. The endpoint returns the final STL or a
+JSON envelope, depending on `response_mode`.
+
+Headers:
+
+| Header | Required | Description |
+| --- | --- | --- |
+| `X-API-Key` | Yes | Agent API key |
+| `Content-Type` | Yes | `application/json` |
+
+Request body:
+
+| Field | Type | Default | Description |
+| --- | --- | --- | --- |
+| `prompt` | string | required | Natural-language description of the model |
+| `response_mode` | `"json"`, `"stl"`, or `"sse"` | `"json"` | Structured JSON, binary STL, or server-sent events |
+| `model` | string or null | tier default | Optional model ID from the chat model selector |
+| `linear_deflection` | number | `0.1` | Mesh density; lower is finer, typical `0.01` to `0.5` |
+| `angular_deflection` | number | `0.1` | Angular tolerance in radians, typical `0.01` to `0.5` |
+
+Minimal JSON request:
+
+```json
+{
+  "prompt": "Create a simple 20 mm cube with rounded edges.",
+  "response_mode": "json",
+  "linear_deflection": 0.1,
+  "angular_deflection": 0.1
+}
+```
+
+Equivalent PowerShell smoke:
 
 ```powershell
-Invoke-WebRequest -Uri "https://api.cadybara.com/api/models" -UseBasicParsing
+$key = [Environment]::GetEnvironmentVariable("CADYBARA_API_KEY", "User")
+$body = @{
+  prompt = "Create a simple 20 mm cube with rounded edges."
+  response_mode = "json"
+  linear_deflection = 0.1
+  angular_deflection = 0.1
+} | ConvertTo-Json
+
+Invoke-WebRequest `
+  -Uri "https://api.cadybara.com/api/agent/generate" `
+  -Method POST `
+  -Headers @{ "X-API-Key" = $key } `
+  -ContentType "application/json" `
+  -Body $body `
+  -UseBasicParsing
+```
+
+Known JSON success shape:
+
+```json
+{
+  "generated_code": "import cadquery as cq\n...",
+  "stl_base64": "...",
+  "validation": {
+    "valid": true,
+    "confidence": 1.0,
+    "issues": [],
+    "brief_reason": "..."
+  },
+  "response_mode": "json"
+}
+```
+
+`response_mode: "stl"` returns a binary STL response instead of the JSON
+envelope. That is useful for product consumers but not ideal for this repo's
+source-code grading path, because the local harness grades and artifacts around
+CadQuery source.
+
+`response_mode: "sse"` streams progress, heartbeat, export, and final result
+events. The final `type: "result"` event has the same `generated_code`,
+`stl_base64`, `validation`, and `response_mode` fields as JSON mode. Use SSE
+for this repo's hosted smoke runs because it avoids the production ALB's
+60-second idle timeout while still giving the harness source code and STL bytes.
+
+## Repo Integration
+
+Hosted API support belongs at the provider boundary:
+
+```text
+projects/local-running/cadybara/providers/cadybara_api.py
+```
+
+The provider is selected with:
+
+```yaml
+models:
+  - name: "cadybara-agent-default"
+    provider: "cadybara_api"
+    base_url: "https://api.cadybara.com"
+    timeout_seconds: 75
+    response_mode: "sse"
+```
+
+Use `name: "cadybara-agent-default"` to omit the optional `model` field and let
+the server pick the tier default. To force a hosted model ID, set:
+
+```yaml
+hosted_model_id: "<model-id-from-chat-selector>"
+```
+
+The provider reads the secret from `CADYBARA_API_KEY` by default. On Windows, it
+also falls back to the User environment value if the current process did not
+inherit it. Do not put the key in config files.
+
+The runner still uses `output_mode: "cadquery"` so generated source flows
+through the same local artifact/export/review/grading path as Ollama runs. For
+`provider: cadybara_api`, the runner posts the raw natural-language design
+request instead of this repo's CadQuery instruction template. The provider also
+keeps an unwrap guard for direct/manual calls. It returns `generated_code` as
+the provider output.
+
+The provider also preserves `stl_base64` from the hosted response. Artifact
+writing stores that STL as `hosted_model.stl`; if local execution of
+`generated_code` fails because the source is multi-file or imports server-only
+helpers, the row still records `render_error.txt` while exposing the hosted STL
+for viewing. Do not erase the local source failure to make the row look cleaner.
+
+The active hosted smoke config is:
+
+```text
+projects/cadybara-online-testing/configs/online_smoke.yaml
+```
+
+It uses the five active wall-planter prompts in:
+
+```text
+projects/cadybara-online-testing/prompts/wall_planter_agent_prompts.yaml
+```
+
+Follow-on hosted review batches live in the same config folder as dated
+experiment records: wall-planter blind repeats, snowman prompts, hook prompts,
+and gapfill/hook/snowman mixes. Keep them separate unless the researcher asks
+for a new combined experiment; derived blind-review summaries belong in
+`projects/cadybara-online-testing/workspace/reviews/`.
+
+The current shareable hosted smoke snapshot is:
+
+```text
+results/cadybara_online_smoke_reps2/20260606_163617_windows/
+```
+
+## Current Risk
+
+The hosted endpoint works for a tiny cube prompt and for all ten current
+wall-planter smoke cells when using `response_mode: "sse"`. Plain JSON mode
+previously hit load-balancer `504` around `60s` on five cells. Treat any future
+60-second JSON-mode failure as a transport/gateway issue first, then retry with
+SSE before changing prompts. The likely next questions for the API owner are:
+
+- Which model IDs are available for this API key/tier?
+- Is there a cheaper/faster model suitable for smoke testing?
+- Are rate-limit or usage headers exposed on agent responses?
+- Is `generated_code` supposed to be a standalone single-file CadQuery script,
+  or can it reference server-side helper modules while `stl_base64` remains the
+  authoritative export?
+
+## Manual Diagnostics
+
+No-key and fake-key probes are safe:
+
+```powershell
+Invoke-WebRequest -Uri "https://api.cadybara.com/health" -UseBasicParsing
+Invoke-WebRequest -Uri "https://api.cadybara.com/openapi.json" -UseBasicParsing
 Invoke-WebRequest -Uri "https://api.cadybara.com/api/agent/generate" -Method GET -UseBasicParsing
-Invoke-WebRequest -Uri "https://api.cadybara.com/api/agent/generate" `
+Invoke-WebRequest `
+  -Uri "https://api.cadybara.com/api/agent/generate" `
   -Method POST `
   -ContentType "application/json" `
   -Body '{"prompt":"Create a phone stand"}' `
   -UseBasicParsing
 ```
 
-Expected current results:
+Expected unauthenticated results:
 
-- `/api/models`: `401 Unauthorized`
-- `GET /api/agent/generate`: `405 Method Not Allowed`
-- unauthenticated `POST /api/agent/generate`: `401 Unauthorized`
+- `/health`: `200`
+- `/openapi.json`: `200`
+- `GET /api/agent/generate`: `405`
+- no-key `POST /api/agent/generate`: `401`
 
-If those results change, update this note before changing the provider plan.
+Run the hosted config through the normal CLI:
 
-## Verification Snapshot
+```bash
+cadybara run projects/cadybara-online-testing/configs/online_smoke.yaml
+```
 
-Last checked from this workspace on 2026-06-05:
+For a one-cell smoke while debugging:
 
-- `pytest projects/cadybara-online-testing/tests -q -p no:cacheprovider`:
-  `12 passed`
-- `pytest projects/local-running/tests -q -p no:cacheprovider`: `36 passed`
-- `pytest -q -p no:cacheprovider`: `54 passed`
-- Hosted no-key probes matched the expected `401`/`405` statuses above.
-- `git diff --check` reported only existing line-ending warnings for tracked
-  files in this Windows checkout; it did not report whitespace errors from
-  these documentation edits.
+```bash
+cadybara run projects/cadybara-online-testing/configs/online_smoke.yaml --limit 1 --retry-errors
+```
+
+If the key was pasted into chat or screenshots, rotate it after debugging.

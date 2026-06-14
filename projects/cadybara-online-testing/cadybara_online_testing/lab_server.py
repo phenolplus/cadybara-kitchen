@@ -34,11 +34,14 @@ from cadybara.runner import build_cells, read_jsonl_records, record_is_complete,
 from cadybara.snapshot import SnapshotBuffer
 from cadybara_cad_diffusion import (
     latest_checkpoint,
+    latest_voxel_checkpoint,
     load_prepared_examples,
+    load_voxel_examples,
     train_diffusion_model,
+    train_voxel_diffusion_model,
     validate_cad_token_grammar,
 )
-from cadybara_online_testing.progress import run_status_payload
+from cadybara_online_testing.progress import record_has_viewable_stl, run_status_payload
 from cadybara_online_testing.reviews import append_score, review_items, review_path
 
 DEFAULT_PROJECT_CONFIG = "projects/cadybara-online-testing/configs/online_smoke.yaml"
@@ -60,6 +63,21 @@ CAD_DIFFUSION_DEFAULTS = {
     "checkpoint_interval": 100,
     "time_limit_minutes": 480.0,
     "seed": 20260602,
+    "resume": True,
+}
+VOXEL_DIFFUSION_DEFAULTS = {
+    "source_dir": "projects/cad-diffusion/workspace/datasets/fusion360_gallery/r1.0.1/reconstruction",
+    "data_dir": "projects/cad-diffusion/workspace/datasets/fusion360_voxels_64",
+    "model_dir": "projects/cad-diffusion/workspace/models/voxel_diffusion_64_20260608",
+    "resolution": 64,
+    "max_steps": 1000,
+    "batch_size": 1,
+    "base_channels": 16,
+    "timesteps": 1000,
+    "learning_rate": 2e-4,
+    "checkpoint_interval": 100,
+    "time_limit_minutes": 480.0,
+    "seed": 20260608,
     "resume": True,
 }
 
@@ -93,6 +111,30 @@ def cad_diffusion_train_options(overrides: dict[str, Any] | None = None) -> dict
     return data
 
 
+def voxel_diffusion_train_options(overrides: dict[str, Any] | None = None) -> dict[str, Any]:
+    data = dict(VOXEL_DIFFUSION_DEFAULTS)
+    for key, value in (overrides or {}).items():
+        if key in data and value is not None:
+            data[key] = value
+    for key in (
+        "resolution",
+        "max_steps",
+        "batch_size",
+        "base_channels",
+        "timesteps",
+        "checkpoint_interval",
+        "seed",
+    ):
+        data[key] = int(data[key])
+    data["learning_rate"] = float(data["learning_rate"])
+    data["time_limit_minutes"] = float(data["time_limit_minutes"])
+    data["resume"] = bool(data["resume"])
+    data["source_dir"] = str(data["source_dir"])
+    data["data_dir"] = str(data["data_dir"])
+    data["model_dir"] = str(data["model_dir"])
+    return data
+
+
 def cad_torch_status() -> dict[str, Any]:
     try:
         import torch
@@ -113,6 +155,35 @@ def cad_torch_status() -> dict[str, Any]:
         "cuda_device_count": int(torch.cuda.device_count()),
         "device": "cuda" if cuda_available else "cpu",
         "message": "CUDA is available." if cuda_available else "CPU-only PyTorch detected; overnight training is expected.",
+    }
+
+
+def voxel_dependency_status() -> dict[str, Any]:
+    info = cad_torch_status()
+    missing: list[str] = []
+    versions: dict[str, str | None] = {"torch": info["version"]}
+    for module_name, import_name in [
+        ("numpy", "numpy"),
+        ("trimesh", "trimesh"),
+        ("scikit-image", "skimage"),
+        ("scipy", "scipy"),
+    ]:
+        try:
+            module = __import__(import_name)
+            versions[module_name] = str(getattr(module, "__version__", "")) or None
+        except ImportError:
+            missing.append(module_name)
+            versions[module_name] = None
+    return {
+        **info,
+        "versions": versions,
+        "missing": missing,
+        "available": bool(info["available"]) and not missing,
+        "message": (
+            info["message"]
+            if not missing
+            else "Missing voxel diffusion deps: " + ", ".join(missing)
+        ),
     }
 
 
@@ -232,6 +303,63 @@ def cad_dataset_readiness(data_dir: Path, *, max_len: int) -> dict[str, Any]:
     }
 
 
+def voxel_dataset_readiness(data_dir: Path, *, resolution: int) -> dict[str, Any]:
+    blockers: list[str] = []
+    manifest_path = data_dir / "manifest.json"
+    manifest: dict[str, Any] | None = None
+    train_count = 0
+    test_count = 0
+    val_count = 0
+    resolution_matches = False
+    if not data_dir.exists():
+        blockers.append(f"Prepared voxel dataset is missing: {data_dir}")
+    else:
+        if manifest_path.exists():
+            try:
+                manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+                resolution_matches = int(manifest.get("resolution", -1)) == resolution
+                if not resolution_matches:
+                    blockers.append(
+                        f"Voxel manifest resolution is {manifest.get('resolution')}, expected {resolution}."
+                    )
+            except Exception as exc:  # noqa: BLE001 - returned as readiness detail.
+                blockers.append(f"Voxel manifest is unreadable: {exc}")
+        else:
+            blockers.append(f"Voxel manifest is missing: {manifest_path}")
+        train_count = count_jsonl_lines(data_dir / "train.jsonl")
+        test_count = count_jsonl_lines(data_dir / "test.jsonl")
+        val_count = count_jsonl_lines(data_dir / "val.jsonl")
+        if train_count <= 0:
+            blockers.append(f"Prepared voxel train split is empty or missing: {data_dir / 'train.jsonl'}")
+        else:
+            try:
+                first = load_voxel_examples(data_dir, split="train")[0]
+                if int(first.resolution) != resolution:
+                    blockers.append(
+                        f"Voxel train examples are resolution {first.resolution}, expected {resolution}."
+                    )
+            except Exception as exc:  # noqa: BLE001 - returned as readiness detail.
+                blockers.append(f"Voxel train split failed to load: {exc}")
+    return {
+        "data_dir": data_dir.as_posix(),
+        "manifest_path": manifest_path.as_posix(),
+        "manifest": manifest,
+        "train_count": train_count,
+        "test_count": test_count,
+        "val_count": val_count,
+        "resolution": resolution,
+        "resolution_matches": resolution_matches,
+        "blockers": blockers,
+    }
+
+
+def latest_voxel_sample_stl(run_root: Path = Path("projects/cad-diffusion/workspace/runs")) -> str | None:
+    if not run_root.exists():
+        return None
+    stls = sorted(run_root.glob("voxel_diffusion*/artifacts/*/raw.stl"), key=lambda path: path.stat().st_mtime)
+    return stls[-1].as_posix() if stls else None
+
+
 def count_jsonl_lines(path: Path) -> int:
     if not path.exists():
         return 0
@@ -289,20 +417,28 @@ class LabState:
         self.model_job = JobLog("model-prefetch")
         self.run_job = JobLog("experiment-run")
         self.cad_train_job = JobLog("cad-diffusion-train")
+        self.voxel_train_job = JobLog("voxel-diffusion-train")
         self.model_thread: threading.Thread | None = None
         self.run_thread: threading.Thread | None = None
         self.cad_train_thread: threading.Thread | None = None
+        self.voxel_train_thread: threading.Thread | None = None
         self.stop_event = threading.Event()
         self.cad_train_stop_event = threading.Event()
+        self.voxel_train_stop_event = threading.Event()
         self.active_run_config: ExperimentConfig | None = None
         self.snapshot_buffer = SnapshotBuffer()
         self.run_records = []
         self.run_started_at: float | None = None
         self.cad_train_started_at: float | None = None
         self.cad_train_progress: dict[str, Any] = {}
+        self.voxel_train_started_at: float | None = None
+        self.voxel_train_progress: dict[str, Any] = {}
         self.cad_readiness_cache_key: tuple[Any, ...] | None = None
         self.cad_readiness_cache: dict[str, Any] | None = None
+        self.voxel_readiness_cache_key: tuple[Any, ...] | None = None
+        self.voxel_readiness_cache: dict[str, Any] | None = None
         self.cad_readiness_lock = threading.Lock()
+        self.voxel_readiness_lock = threading.Lock()
         self.run_status_cache: dict[str, Any] | None = None
         self.model_cache: dict[str, Any] | None = None
         self.model_cache_at = 0.0
@@ -693,11 +829,144 @@ class LabState:
             self.cad_train_job.set_status("stopping")
             return True
 
-    def model_snapshot(self, queue_config=None) -> dict[str, Any]:
+    def voxel_diffusion_status(self) -> dict[str, Any]:
+        options = voxel_diffusion_train_options()
+        data_dir = Path(options["data_dir"])
+        model_dir = Path(options["model_dir"])
+        dataset = self.cached_voxel_dataset_readiness(data_dir, resolution=int(options["resolution"]))
+        deps = voxel_dependency_status()
+        blockers = [*dataset["blockers"]]
+        if not deps["available"]:
+            blockers.append(str(deps["message"]))
+        checkpoint = latest_voxel_checkpoint(model_dir)
+        with self.lock:
+            running = self.voxel_train_thread is not None and self.voxel_train_thread.is_alive()
+            progress = dict(self.voxel_train_progress)
+            started_at = self.voxel_train_started_at
+        elapsed = round(time.monotonic() - started_at, 1) if started_at else 0.0
+        return {
+            "defaults": options,
+            "ready": not blockers,
+            "blockers": blockers,
+            "dataset": dataset,
+            "deps": deps,
+            "model_dir": model_dir.as_posix(),
+            "latest_checkpoint": checkpoint.as_posix() if checkpoint else None,
+            "latest_sample_stl": latest_voxel_sample_stl(),
+            "job": self.voxel_train_job.snapshot(),
+            "running": running,
+            "progress": progress,
+            "elapsed_seconds": elapsed,
+        }
+
+    def start_voxel_diffusion_train(self, *, overrides: dict[str, Any] | None = None) -> bool:
+        options = voxel_diffusion_train_options(overrides)
+        data_dir = Path(options["data_dir"])
+        model_dir = Path(options["model_dir"])
+        dataset = self.cached_voxel_dataset_readiness(data_dir, resolution=int(options["resolution"]))
+        deps = voxel_dependency_status()
+        blockers = [*dataset["blockers"]]
+        if not deps["available"]:
+            blockers.append(str(deps["message"]))
+
+        with self.lock:
+            if self.voxel_train_thread is not None and self.voxel_train_thread.is_alive():
+                return False
+            self.voxel_train_job = JobLog("voxel-diffusion-train")
+            self.voxel_train_progress = {}
+            self.voxel_train_started_at = None
+            self.voxel_train_stop_event.clear()
+            if blockers:
+                self.voxel_train_job.write("Blocked: " + " | ".join(blockers))
+                self.voxel_train_job.set_status("blocked")
+                return False
+
+        def on_progress(progress: dict[str, Any]) -> None:
+            with self.lock:
+                self.voxel_train_progress = dict(progress)
+            phase = str(progress.get("phase") or "")
+            step = int(progress.get("step") or 0)
+            if phase in {"started", "checkpoint", "complete", "stopped"}:
+                loss = progress.get("loss")
+                loss_text = f" loss={loss:.4f}" if isinstance(loss, (float, int)) else ""
+                self.voxel_train_job.write(
+                    f"{phase} step={step}/{progress.get('max_steps')}"
+                    f"{loss_text} checkpoint={progress.get('checkpoint_path')}"
+                )
+
+        def target() -> None:
+            self.voxel_train_job.set_status("running")
+            with self.lock:
+                self.voxel_train_started_at = time.monotonic()
+            self.voxel_train_job.write(
+                f"Training voxel diffusion on {dataset['train_count']} examples with {deps['device']}."
+            )
+            self.voxel_train_job.write(f"Data: {data_dir.as_posix()}")
+            self.voxel_train_job.write(f"Model: {model_dir.as_posix()}")
+            try:
+                summary = train_voxel_diffusion_model(
+                    data_dir,
+                    model_dir,
+                    resolution=int(options["resolution"]),
+                    max_steps=int(options["max_steps"]),
+                    batch_size=int(options["batch_size"]),
+                    base_channels=int(options["base_channels"]),
+                    timesteps=int(options["timesteps"]),
+                    learning_rate=float(options["learning_rate"]),
+                    checkpoint_interval=int(options["checkpoint_interval"]),
+                    time_limit_minutes=float(options["time_limit_minutes"]),
+                    seed=int(options["seed"]),
+                    resume=bool(options["resume"]),
+                    should_stop=self.voxel_train_stop_event.is_set,
+                    on_progress=on_progress,
+                )
+                self.voxel_train_job.write(
+                    f"trained_steps={summary.steps} examples={summary.examples} "
+                    f"device={summary.device} elapsed_seconds={summary.elapsed_seconds:.1f}"
+                )
+                self.voxel_train_job.write(f"checkpoint={summary.checkpoint_path.as_posix()}")
+                self.voxel_train_job.set_status(
+                    "stopped" if self.voxel_train_stop_event.is_set() else "done"
+                )
+            except Exception as exc:  # noqa: BLE001 - lab reports failures in UI.
+                self.voxel_train_job.write(f"Error: {exc}")
+                self.voxel_train_job.set_status("error")
+
+        self.voxel_train_thread = threading.Thread(target=target, daemon=True)
+        self.voxel_train_thread.start()
+        return True
+
+    def cached_voxel_dataset_readiness(self, data_dir: Path, *, resolution: int) -> dict[str, Any]:
+        key = (
+            data_dir.as_posix(),
+            resolution,
+            file_cache_marker(data_dir / "manifest.json"),
+            file_cache_marker(data_dir / "train.jsonl"),
+            file_cache_marker(data_dir / "test.jsonl"),
+            file_cache_marker(data_dir / "val.jsonl"),
+        )
+        with self.voxel_readiness_lock:
+            if self.voxel_readiness_cache_key == key and self.voxel_readiness_cache is not None:
+                return self.voxel_readiness_cache
+            readiness = voxel_dataset_readiness(data_dir, resolution=resolution)
+            self.voxel_readiness_cache_key = key
+            self.voxel_readiness_cache = readiness
+            return readiness
+
+    def stop_voxel_diffusion_train(self) -> bool:
+        with self.lock:
+            if self.voxel_train_thread is None or not self.voxel_train_thread.is_alive():
+                return False
+            self.voxel_train_stop_event.set()
+            self.voxel_train_job.write("Stop requested. A final checkpoint will be saved after the current step.")
+            self.voxel_train_job.set_status("stopping")
+            return True
+
+    def model_snapshot(self, queue_config=None, *, default_if_missing: bool = True) -> dict[str, Any]:
         model_status = self.model_job.snapshot()["status"]
         cache_ttl = 2.0 if model_status in {"running", "stopping"} else 30.0
         now = time.monotonic()
-        if queue_config is not None:
+        if queue_config is not None or not default_if_missing:
             with self.lock:
                 self.model_queue_config = queue_config
                 self.model_cache = None
@@ -706,7 +975,9 @@ class LabState:
             if self.model_cache is not None and now - self.model_cache_at < cache_ttl:
                 return self.model_cache
 
-        queue = queue_config or self.model_queue_config or load_model_queue(DEFAULT_MODEL_QUEUE_PATH)
+        queue = queue_config or self.model_queue_config
+        if queue is None and default_if_missing:
+            queue = load_model_queue(DEFAULT_MODEL_QUEUE_PATH)
         exe = ollama_path()
         snapshot = {
             "ollama": {
@@ -714,7 +985,7 @@ class LabState:
                 "path": exe,
                 "version": ollama_version() if exe is not None else None,
             },
-            "models": model_status_rows(queue, state_path=DEFAULT_MODEL_STATE_PATH),
+            "models": model_status_rows(queue, state_path=DEFAULT_MODEL_STATE_PATH) if queue is not None else [],
         }
         with self.lock:
             self.model_cache = snapshot
@@ -730,7 +1001,13 @@ class LabState:
             ):
                 return self.active_run_config
             self.active_run_config = None
-        return assign_numbered_run_config(load_config(config_path), create=False)
+        config = load_config(config_path)
+        configured_rows = read_jsonl_records(Path(config.output_path))
+        if configured_rows.records:
+            current_hash = config_hash(config)
+            if all(record.config_hash == current_hash for record in configured_rows.records):
+                return config
+        return assign_numbered_run_config(config, create=False)
 
     def current_snapshot(self) -> dict[str, Any]:
         return self.snapshot_buffer.snapshot()
@@ -772,6 +1049,12 @@ def total_cells(config: ExperimentConfig) -> int:
         * len(config.sampling.temperatures)
         * config.sampling.repetitions
     )
+
+
+def experiment_ollama_queue(config: ExperimentConfig):
+    if not any(model.provider == "ollama" for model in config.models):
+        return None
+    return queue_from_experiment_config(config)
 
 
 def missing_ollama_models(config: ExperimentConfig, *, limit: int | None = None) -> list[str]:
@@ -931,11 +1214,7 @@ def saved_outputs(config: ExperimentConfig, *, dry_run: bool, limit: int = 20) -
                 "latency_ms": record.latency_ms,
                 "error": record.error,
                 "render_error": record.render_error,
-                "is_renderable": bool(
-                    (record.artifacts or {}).get("stl")
-                    and record.error is None
-                    and record.render_error is None
-                ),
+                "is_renderable": record_has_viewable_stl(record),
                 "output": record.output,
             }
             for index, record in selected
@@ -988,7 +1267,11 @@ def make_handler(state: LabState):
             if parsed.path == "/api/status":
                 config_path = Path(parse_qs(parsed.query).get("config", [DEFAULT_PROJECT_CONFIG])[0])
                 display_config = state.display_config(config_path)
-                model_snapshot = state.model_snapshot(queue_from_experiment_config(display_config))
+                queue_config = experiment_ollama_queue(display_config)
+                model_snapshot = state.model_snapshot(
+                    queue_config,
+                    default_if_missing=queue_config is not None,
+                )
                 self._json(
                     {
                         "ollama": model_snapshot["ollama"],
@@ -1007,6 +1290,9 @@ def make_handler(state: LabState):
                 return
             if parsed.path == "/api/cad-diffusion/status":
                 self._json(state.cad_diffusion_status())
+                return
+            if parsed.path == "/api/voxel-diffusion/status":
+                self._json(state.voxel_diffusion_status())
                 return
             if parsed.path == "/api/run_status":
                 config_path = Path(parse_qs(parsed.query).get("config", [DEFAULT_PROJECT_CONFIG])[0])
@@ -1069,6 +1355,20 @@ def make_handler(state: LabState):
                 stopped = state.stop_cad_diffusion_train()
                 self._json(
                     {"stop_requested": stopped, "status": state.cad_diffusion_status()},
+                    status=202 if stopped else 409,
+                )
+                return
+            if self.path == "/api/voxel-diffusion/train/start":
+                started = state.start_voxel_diffusion_train(overrides=payload)
+                self._json(
+                    {"started": started, "status": state.voxel_diffusion_status()},
+                    status=202 if started else 409,
+                )
+                return
+            if self.path == "/api/voxel-diffusion/train/stop":
+                stopped = state.stop_voxel_diffusion_train()
+                self._json(
+                    {"stop_requested": stopped, "status": state.voxel_diffusion_status()},
                     status=202 if stopped else 409,
                 )
                 return

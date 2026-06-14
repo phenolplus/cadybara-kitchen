@@ -1,0 +1,54 @@
+- id: hook_05_printable
+  specificity_level: 5
+  text: |
+    Design a single-piece 3D-printable wall hook for holding cables or
+    headphones. The model should include a flat rectangular wall plate, two
+    recessed circular screw holes aligned vertically, a thick smooth hook that
+    curves forward and slightly upward, rounded edges, and a flat back face for
+    mounting against a wall.
+
+- id: hook_07_dimensions
+  specificity_level: 7
+  text: |
+    Design a 3D-printable wall-mounted cable or headphone hook with a 90 mm tall
+    x 38 mm wide x 6 mm thick flat back plate. Add two 5 mm diameter circular
+    screw holes centered on the plate, spaced 55 mm apart vertically. The hook
+    should project 55 mm forward from the plate, curve upward at the tip, and
+    be about 14 mm thick with rounded edges and fillets for strength.
+
+- id: snowman_05_printable
+  specificity_level: 5
+  text: |
+    Design a single-piece 3D-printable curved snowman figurine made from three
+    rounded-square blocks stacked vertically from largest to smallest. The body
+    should have softened corners, a smooth forward-curving pose, a flat bottom
+    for standing, and three recessed circular button holes on each side of the
+    snowman.
+
+- id: snowman_07_dimensions
+  specificity_level: 7
+  text: |
+    Design a 3D-printable curved snowman figurine, 120 mm tall, made from three
+    rounded-square body blocks stacked vertically: a 65 mm wide bottom block, a
+    52 mm wide middle block, and a 40 mm wide top block. The stack should curve
+    forward smoothly from bottom to top. Each block should have rounded corners
+    and soft filleted edges. Add three 5 mm circular button holes recessed into
+    the left side and three matching holes recessed into the right side.
+
+- id: snowman_10_full
+  specificity_level: 10
+  text: |
+    Design a single-piece 3D-printable curved snowman figurine with three
+    rounded-square body sections stacked vertically, not spherical snowballs.
+    The total height is 120 mm. The bottom section is 65 mm wide x 52 mm deep
+    x 38 mm tall, the middle section is 52 mm wide x 44 mm deep x 34 mm tall,
+    and the top section is 40 mm wide x 36 mm deep x 30 mm tall. Each section
+    is a rounded rectangular solid with 8 mm corner radii and 2 mm external
+    fillets. The sections overlap slightly so the model is one watertight solid.
+    The vertical centerline should form a smooth forward curve: the middle
+    section center is shifted 8 mm forward from the bottom section, and the top
+    section center is shifted 18 mm forward from the bottom section. Add three
+    5 mm diameter circular button holes recessed 2 mm into the left side and
+    three matching 5 mm diameter button holes recessed 2 mm into the right side,
+    evenly spaced vertically across the stack. The bottom should be flat so the
+    snowman can stand upright on a print bed without supports.

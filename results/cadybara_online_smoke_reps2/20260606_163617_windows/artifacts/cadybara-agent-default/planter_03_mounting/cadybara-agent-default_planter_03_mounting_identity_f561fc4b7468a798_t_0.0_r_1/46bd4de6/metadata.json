@@ -1,0 +1,20 @@
+{
+  "run_id": "46bd4de6-6f3a-4fe9-b9a8-04dd80804020",
+  "experiment_id": "cadybara_online_smoke_reps2",
+  "model_name": "cadybara-agent-default",
+  "provider": "cadybara_api",
+  "seed_id": "planter_03_mounting",
+  "strategy": "identity",
+  "variant_id": "f561fc4b7468a798",
+  "sampling": {
+    "temperature": 0.0,
+    "seed": 1004304401,
+    "max_tokens": 1
+  },
+  "repetition": 1,
+  "timestamp_utc": "2026-06-06T23:29:14.958938Z",
+  "condition_name": "cadybara-agent-default|planter_03_mounting|identity|f561fc4b7468a798|t=0.0|r=1",
+  "render_error": null,
+  "hosted_stl": "projects/cadybara-online-testing/workspace/runs/cadybara_online_smoke_reps2_manual/artifacts/cadybara-agent-default/planter_03_mounting/cadybara-agent-default_planter_03_mounting_identity_f561fc4b7468a798_t_0.0_r_1/46bd4de6/hosted_model.stl",
+  "hosted_stl_error": null
+}

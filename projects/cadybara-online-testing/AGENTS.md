@@ -1,12 +1,12 @@
 # AGENTS.md - Cadybara Online Testing
 
 You are in the online/lab testing project. Keep changes focused on the local lab
-API, run progress, review workflow, grading helpers, CAD diffusion training
-control, and online configs.
+API, run progress, review workflow, blind reports, grading helpers, CAD/voxel
+diffusion training control, and online configs.
 
 Read `../../docs/HOSTED_CADYBARA_API.md` if "online" means hosted
 `api.cadybara.com`. This folder name is historical/operational; it does not
-mean hosted API support already exists.
+mean hosted API calls belong in this folder.
 
 ## Read First
 
@@ -40,6 +40,10 @@ mean hosted API support already exists.
   finish before the job fully stops.
 - Keep current worker job state in ignored workspace paths.
 - Keep review scores append-only.
+- Keep hosted blind-review configs as separate dated experiment records. Do not
+  rewrite old YAML or review JSONL just to make a cleaner-looking batch.
+- Keep `blind_report.py` derived-only: it reads saved rows and review scores,
+  then writes reports. It should not regenerate provider output.
 - Preserve legacy workspace route mapping unless old artifact links are
   intentionally migrated.
 

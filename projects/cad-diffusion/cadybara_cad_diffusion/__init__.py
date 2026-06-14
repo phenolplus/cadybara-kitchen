@@ -16,6 +16,22 @@ from cadybara_cad_diffusion.core import (
     train_diffusion_model,
     validate_cad_token_grammar,
 )
+from cadybara_cad_diffusion.voxel import (
+    VoxelDiffusionRecord,
+    VoxelEvalSummary,
+    VoxelExampleRecord,
+    VoxelPrepareManifest,
+    VoxelTrainSummary,
+    eval_voxel_diffusion_run,
+    export_voxel_artifacts,
+    latest_voxel_checkpoint,
+    load_voxel_examples,
+    prepare_voxel_dataset,
+    sample_voxel_diffusion_model,
+    train_voxel_diffusion_model,
+    voxel_discriminator_metrics,
+    voxels_to_mesh,
+)
 
 __all__ = [
     "CadDiffusionRecord",
@@ -34,4 +50,18 @@ __all__ = [
     "tokens_to_program",
     "train_diffusion_model",
     "validate_cad_token_grammar",
+    "VoxelDiffusionRecord",
+    "VoxelEvalSummary",
+    "VoxelExampleRecord",
+    "VoxelPrepareManifest",
+    "VoxelTrainSummary",
+    "eval_voxel_diffusion_run",
+    "export_voxel_artifacts",
+    "latest_voxel_checkpoint",
+    "load_voxel_examples",
+    "prepare_voxel_dataset",
+    "sample_voxel_diffusion_model",
+    "train_voxel_diffusion_model",
+    "voxel_discriminator_metrics",
+    "voxels_to_mesh",
 ]

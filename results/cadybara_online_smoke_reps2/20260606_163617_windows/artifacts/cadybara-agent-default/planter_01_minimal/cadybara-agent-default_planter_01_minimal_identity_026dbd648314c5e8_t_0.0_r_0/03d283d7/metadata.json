@@ -1,0 +1,20 @@
+{
+  "run_id": "03d283d7-9314-4490-8252-06d522698d7f",
+  "experiment_id": "cadybara_online_smoke_reps2",
+  "model_name": "cadybara-agent-default",
+  "provider": "cadybara_api",
+  "seed_id": "planter_01_minimal",
+  "strategy": "identity",
+  "variant_id": "026dbd648314c5e8",
+  "sampling": {
+    "temperature": 0.0,
+    "seed": 3537020160,
+    "max_tokens": 1
+  },
+  "repetition": 0,
+  "timestamp_utc": "2026-06-06T23:01:22.927057Z",
+  "condition_name": "cadybara-agent-default|planter_01_minimal|identity|026dbd648314c5e8|t=0.0|r=0",
+  "render_error": "No module named 'planter_body'\nTraceback (most recent call last):\n  File \"C:\\Users\\arvin\\Documents\\cadybara\\projects\\local-running\\cadybara\\cadquery_runner.py\", line 251, in write_cadquery_artifacts\n    export_cadquery_code(code, paths[\"stl\"], paths[\"step\"])\n  File \"C:\\Users\\arvin\\Documents\\cadybara\\projects\\local-running\\cadybara\\cadquery_runner.py\", line 154, in export_cadquery_code\n    exec(compile(code, \"<cadquery-generated>\", \"exec\"), namespace)  # noqa: S102\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"<cadquery-generated>\", line 2, in <module>\nModuleNotFoundError: No module named 'planter_body'\n",
+  "hosted_stl": "projects/cadybara-online-testing/workspace/runs/cadybara_online_smoke_reps2_manual/artifacts/cadybara-agent-default/planter_01_minimal/cadybara-agent-default_planter_01_minimal_identity_026dbd648314c5e8_t_0.0_r_0/03d283d7/hosted_model.stl",
+  "hosted_stl_error": null
+}

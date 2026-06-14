@@ -1,0 +1,9 @@
+No module named 'planter_body'
+Traceback (most recent call last):
+  File "C:\Users\arvin\Documents\cadybara\projects\local-running\cadybara\cadquery_runner.py", line 251, in write_cadquery_artifacts
+    export_cadquery_code(code, paths["stl"], paths["step"])
+  File "C:\Users\arvin\Documents\cadybara\projects\local-running\cadybara\cadquery_runner.py", line 154, in export_cadquery_code
+    exec(compile(code, "<cadquery-generated>", "exec"), namespace)  # noqa: S102
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<cadquery-generated>", line 2, in <module>
+ModuleNotFoundError: No module named 'planter_body'

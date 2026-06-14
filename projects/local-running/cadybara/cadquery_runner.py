@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import json
 import re
 import traceback
@@ -208,6 +209,7 @@ def write_cadquery_artifacts(
     record: RunRecord,
     prompt_sent: str,
     artifact_root: Path,
+    hosted_stl_base64: str | None = None,
 ) -> tuple[dict[str, Any], str | None]:
     folder = run_artifact_dir(artifact_root, record)
     folder.mkdir(parents=True, exist_ok=True)
@@ -220,10 +222,12 @@ def write_cadquery_artifacts(
         "cadquery_code": folder / "model.py",
         "metadata": folder / "metadata.json",
         "stl": folder / "model.stl",
+        "hosted_stl": folder / "hosted_model.stl",
         "step": folder / "model.step",
         "preview_png": folder / "preview.png",
         "render_error": folder / "render_error.txt",
         "preview_error": folder / "preview_error.txt",
+        "hosted_stl_error": folder / "hosted_stl_error.txt",
     }
 
     paths["prompt"].write_text(prompt_sent, encoding="utf-8")
@@ -231,7 +235,18 @@ def write_cadquery_artifacts(
     paths["model_output"].write_text(record.output, encoding="utf-8")
     paths["cadquery_code"].write_text(code, encoding="utf-8")
 
+    hosted_stl_error: str | None = None
+    if hosted_stl_base64:
+        try:
+            paths["hosted_stl"].write_bytes(base64.b64decode(hosted_stl_base64, validate=True))
+            if paths["hosted_stl_error"].exists():
+                paths["hosted_stl_error"].unlink()
+        except Exception as exc:  # noqa: BLE001 - stored as artifact data.
+            hosted_stl_error = f"{exc}\n{traceback.format_exc()}"
+            paths["hosted_stl_error"].write_text(hosted_stl_error, encoding="utf-8")
+
     render_error: str | None = None
+    preview_source: Path | None = None
     try:
         export_cadquery_code(code, paths["stl"], paths["step"])
         if paths["render_error"].exists():
@@ -239,9 +254,14 @@ def write_cadquery_artifacts(
     except Exception as exc:  # noqa: BLE001 - stored for review instead of aborting sweep.
         render_error = f"{exc}\n{traceback.format_exc()}"
         paths["render_error"].write_text(render_error, encoding="utf-8")
+        if paths["hosted_stl"].exists():
+            preview_source = paths["hosted_stl"]
     else:
+        preview_source = paths["stl"]
+
+    if preview_source is not None:
         try:
-            render_stl_preview(paths["stl"], paths["preview_png"])
+            render_stl_preview(preview_source, paths["preview_png"])
             if paths["preview_error"].exists():
                 paths["preview_error"].unlink()
         except Exception as exc:  # noqa: BLE001 - preview is advisory, not grading data.
@@ -261,6 +281,8 @@ def write_cadquery_artifacts(
         "timestamp_utc": record.timestamp_utc,
         "condition_name": record.condition_name,
         "render_error": render_error,
+        "hosted_stl": paths["hosted_stl"].as_posix() if paths["hosted_stl"].exists() else None,
+        "hosted_stl_error": hosted_stl_error,
     }
     paths["metadata"].write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
 
@@ -268,12 +290,18 @@ def write_cadquery_artifacts(
         name: path.as_posix()
         for name, path in paths.items()
         if name not in {"render_error", "preview_error"}
+        and name != "hosted_stl_error"
         and (name != "step" or path.exists())
         and (name != "stl" or path.exists())
+        and (name != "hosted_stl" or path.exists())
         and (name != "preview_png" or path.exists())
     }
+    if "stl" not in artifacts and paths["hosted_stl"].exists():
+        artifacts["stl"] = paths["hosted_stl"].as_posix()
     if render_error:
         artifacts["render_error"] = paths["render_error"].as_posix()
     if paths["preview_error"].exists():
         artifacts["preview_error"] = paths["preview_error"].as_posix()
+    if paths["hosted_stl_error"].exists():
+        artifacts["hosted_stl_error"] = paths["hosted_stl_error"].as_posix()
     return artifacts, render_error

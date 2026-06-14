@@ -1,7 +1,8 @@
 # AGENTS.md - CAD Diffusion
 
 You are in the CAD-native diffusion project. Keep changes focused on dataset
-prep, token grammar, model training, sampling, CAD compilation, and evaluation.
+prep, token grammar, voxelization, model training, sampling, CAD/mesh
+compilation, and evaluation.
 
 ## Read First
 
@@ -10,7 +11,9 @@ prep, token grammar, model training, sampling, CAD compilation, and evaluation.
 - `projects/cad-diffusion/README.md`
 - `projects/cad-diffusion/HANDOFF.md`
 - `projects/cad-diffusion/cadybara_cad_diffusion/core.py`
+- `projects/cad-diffusion/cadybara_cad_diffusion/voxel.py`
 - `projects/cad-diffusion/tests/test_cad_diffusion.py`
+- `projects/cad-diffusion/tests/test_voxel_diffusion.py`
 
 ## Boundaries
 
@@ -31,6 +34,9 @@ prep, token grammar, model training, sampling, CAD compilation, and evaluation.
 - Keep PyTorch optional outside training and sampling paths.
 - Be honest in docs and UI: this is CAD diffusion v0, not finished full Stable
   Diffusion for CAD.
+- Keep token diffusion and voxel diffusion distinct. Token diffusion is for
+  editable CAD programs; voxel diffusion is for direct geometry learning and
+  does not recover parametric CAD yet.
 
 ## Implementation Notes
 

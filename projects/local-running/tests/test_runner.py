@@ -112,3 +112,61 @@ sampling:
     resumed = run_config(config)
     assert resumed.executed == 0
     assert len(read_records(output_path)) == 2
+
+
+def test_runner_sends_raw_design_prompt_to_hosted_provider(tmp_path: Path, monkeypatch) -> None:
+    config_path = tmp_path / "hosted.yaml"
+    output_path = tmp_path / "hosted.jsonl"
+    config_path.write_text(
+        f"""
+experiment_id: "hosted_prompt"
+output_path: "{output_path.as_posix()}"
+output_mode: "cadquery"
+models:
+  - name: "cadybara-agent-default"
+    provider: "cadybara_api"
+    base_url: "https://api.cadybara.com"
+seeds:
+  - id: "seed_001"
+    text: "Make me a planter I can put on my wall."
+    metadata: {{}}
+strategies:
+  - name: "identity"
+sampling:
+  temperatures: [0.0]
+  repetitions: 1
+  max_tokens: 1
+""".lstrip(),
+        encoding="utf-8",
+    )
+    prompts: list[str] = []
+
+    def fake_provider_for_model(model, *, dry_run: bool):
+        class CaptureProvider:
+            def generate(self, prompt, *, temperature, max_tokens, seed):
+                prompts.append(prompt)
+                return ProviderResponse(
+                    output='import cadquery as cq\nresult = cq.Workplane("XY").box(1, 1, 1)\n',
+                    latency_ms=1,
+                    prompt_tokens=None,
+                    completion_tokens=None,
+                    finish_reason="done",
+                    total_duration_ms=1,
+                    load_duration_ms=None,
+                    prompt_eval_duration_ms=None,
+                    eval_duration_ms=None,
+                    provider_seed=None,
+                )
+
+        return "cadybara_api", CaptureProvider()
+
+    monkeypatch.setattr("cadybara.runner.provider_for_model", fake_provider_for_model)
+    monkeypatch.setenv("CADYBARA_SKIP_CAD_ARTIFACTS", "1")
+
+    summary = run_config(load_config(config_path))
+    records = read_records(output_path)
+
+    assert summary.executed == 1
+    assert prompts == ["Make me a planter I can put on my wall."]
+    assert "Return only Python CadQuery code" not in records[0].prompt_sent
+    assert records[0].prompt_sent == prompts[0]

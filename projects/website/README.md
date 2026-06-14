@@ -10,7 +10,11 @@ not a full product shell yet. It is a small, deliberately static browser
 surface for a local AI CAD research lab. Keep it honest, bright, usable, and
 calm.
 
-## Current State As Of 2026-06-05
+This is its own frontend project. It consumes lab APIs and artifact URLs, but it
+does not own Python runner behavior, model training, review storage, or hosted
+API calls.
+
+## Current State As Of 2026-06-13
 
 The live routed pages are:
 
@@ -28,9 +32,21 @@ The live routed pages are:
     `lab/cad-diffusion.js`
   - CAD diffusion training status page with start/stop controls.
   - This page does call live lab APIs because those controls are actually wired.
+- `/lab/voxel-diffusion.html`
+  - `lab/voxel-diffusion.html`, `lab/voxel-diffusion.css`,
+    `lab/voxel-diffusion.js`
+  - Geometry-native voxel diffusion training status page with start/stop
+    controls.
+  - This page calls live lab APIs for voxel dataset readiness and training.
 - `/viewer/`
   - `viewer/index.html`, `viewer/styles.css`, `viewer/app.js`
   - Three.js viewer for JSON part artifacts and STL meshes.
+- `/lab/hosted-review.html`
+  - `lab/hosted-review.html`, `lab/hosted-review.css`,
+    `lab/hosted-review.js`
+  - Hosted API review board for saved STL attempts.
+  - Supports combined configs with `extra_config=...` and a blind randomized
+    judging mode with `mode=blind`.
 
 Preserved but currently unlinked:
 
@@ -38,7 +54,7 @@ Preserved but currently unlinked:
   - A much richer lab control/review surface for run/model/results/snapshot
     APIs.
   - It is not loaded by `index.html`, `dashboard.html`, or
-    `cad-diffusion.html`.
+    `cad-diffusion.html` and `voxel-diffusion.html`.
   - Treat it as a preserved interface, not dead code. Wire it back only as a
     deliberate task with matching HTML and API verification.
 
@@ -50,6 +66,7 @@ This folder owns:
 - landing page and demo localStorage auth
 - dashboard project library presentation
 - CAD diffusion training page presentation and browser polling behavior
+- voxel diffusion training page presentation and browser polling behavior
 - Three.js viewer presentation and browser-side artifact loading
 - reusable bitmap/sprite assets under `lab/assets/`
 
@@ -126,6 +143,10 @@ Live pages currently use these APIs:
   - `GET /api/cad-diffusion/status`
   - `POST /api/cad-diffusion/train/start`
   - `POST /api/cad-diffusion/train/stop`
+- Voxel diffusion page:
+  - `GET /api/voxel-diffusion/status`
+  - `POST /api/voxel-diffusion/train/start`
+  - `POST /api/voxel-diffusion/train/stop`
 - Preserved richer lab surface in `lab/app.js`:
   - `GET /api/status`
   - `GET /api/run_status`
@@ -136,6 +157,9 @@ Live pages currently use these APIs:
   - `POST /api/run/start`
   - `POST /api/run/stop`
   - `POST /api/models/start`
+- Hosted review page:
+  - `GET /api/review?config=...`
+  - `POST /api/review/score`
 
 The viewer supports:
 
@@ -190,6 +214,18 @@ them too.
   - CAD diffusion page layout and training status surface.
 - `lab/cad-diffusion.js`
   - Polls CAD diffusion status and posts start/stop.
+- `lab/voxel-diffusion.html`
+  - Voxel diffusion training page markup.
+- `lab/voxel-diffusion.css`
+  - Voxel diffusion page layout and training status surface.
+- `lab/voxel-diffusion.js`
+  - Polls voxel diffusion status and posts start/stop.
+- `lab/hosted-review.html`
+  - Hosted API review board markup.
+- `lab/hosted-review.css`
+  - Hosted review board layout.
+- `lab/hosted-review.js`
+  - Loads review cells, supports blind mode, and posts scores.
 - `lab/app.js`
   - Preserved richer run/review/model UI; currently unlinked.
 - `lab/assets/`
@@ -226,8 +262,11 @@ $paths = @(
   "/lab/",
   "/lab/dashboard.html",
   "/lab/cad-diffusion.html",
+  "/lab/voxel-diffusion.html",
+  "/lab/hosted-review.html",
   "/viewer/",
   "/api/cad-diffusion/status",
+  "/api/voxel-diffusion/status",
   "/api/run_status"
 )
 foreach ($path in $paths) {
@@ -242,6 +281,8 @@ JavaScript syntax checks:
 node --check projects/website/lab/landing.js
 node --check projects/website/lab/dashboard.js
 node --check projects/website/lab/cad-diffusion.js
+node --check projects/website/lab/voxel-diffusion.js
+node --check projects/website/lab/hosted-review.js
 node --check projects/website/viewer/app.js
 ```
 

@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Voxel Diffusion Training</title>
+    <link rel="stylesheet" href="./voxel-diffusion.css?v=voxel1" />
+  </head>
+  <body>
+    <main class="training-shell" aria-label="Voxel diffusion training">
+      <nav class="training-top" aria-label="Primary">
+        <a class="brand-lockup" href="./dashboard.html" aria-label="Back to projects">
+          <span>CADYBARA</span>
+        </a>
+        <div class="top-actions">
+          <a class="top-button" href="./dashboard.html">Projects</a>
+          <button id="refresh" class="top-button" type="button">Refresh</button>
+        </div>
+      </nav>
+
+      <section class="training-hero">
+        <div>
+          <p class="kicker">geometry-native diffusion</p>
+          <h1>Voxel Diffusion Training</h1>
+        </div>
+        <div class="hero-actions">
+          <button id="start-train" class="action-button primary" type="button">
+            <span>Start</span>
+          </button>
+          <button id="stop-train" class="action-button" type="button">
+            <span>Stop</span>
+          </button>
+        </div>
+      </section>
+
+      <section class="status-band" aria-label="Training status">
+        <div>
+          <p id="status-label" class="status-label">Loading</p>
+          <p id="status-line" class="status-line">Checking voxel dataset and geometry dependencies.</p>
+        </div>
+        <div class="status-pill" id="device-pill">device</div>
+      </section>
+
+      <section class="metric-grid" aria-label="Readiness metrics">
+        <div class="metric-tile">
+          <span>Voxels</span>
+          <strong id="metric-examples">0</strong>
+          <small id="metric-test">0 test</small>
+        </div>
+        <div class="metric-tile">
+          <span>Step</span>
+          <strong id="metric-step">0</strong>
+          <small id="metric-target">50,000 target</small>
+        </div>
+        <div class="metric-tile">
+          <span>Elapsed</span>
+          <strong id="metric-elapsed">0s</strong>
+          <small id="metric-loss">loss pending</small>
+        </div>
+        <div class="metric-tile wide">
+          <span>Checkpoint</span>
+          <strong id="metric-checkpoint">none</strong>
+          <small id="metric-model-dir">model dir</small>
+        </div>
+      </section>
+
+      <section class="progress-band" aria-label="Training progress">
+        <div class="progress-text">
+          <span id="progress-summary">waiting</span>
+          <span id="progress-percent">0%</span>
+        </div>
+        <div class="progress-track">
+          <div id="progress-fill" class="progress-fill"></div>
+        </div>
+      </section>
+
+      <section class="detail-grid">
+        <article class="detail-panel">
+          <h2>Readiness</h2>
+          <dl class="readiness-list">
+            <div>
+              <dt>Dataset</dt>
+              <dd id="readiness-dataset">checking</dd>
+            </div>
+            <div>
+              <dt>Resolution</dt>
+              <dd id="readiness-grammar">checking</dd>
+            </div>
+            <div>
+              <dt>Deps</dt>
+              <dd id="readiness-torch">checking</dd>
+            </div>
+            <div>
+              <dt>Defaults</dt>
+              <dd id="readiness-defaults">checking</dd>
+            </div>
+          </dl>
+        </article>
+
+        <article class="detail-panel">
+          <h2>Log</h2>
+          <div id="train-log" class="train-log" aria-live="polite">Loading</div>
+        </article>
+      </section>
+    </main>
+
+    <script src="./voxel-diffusion.js?v=voxel1"></script>
+  </body>
+</html>

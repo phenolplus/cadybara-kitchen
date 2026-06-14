@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Cadybara Hosted Review</title>
+    <link rel="stylesheet" href="./hosted-review.css?v=4" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">Hosted API run</p>
+        <h1>Hosted model review</h1>
+      </div>
+      <div class="run-meta" id="run-meta">Loading run</div>
+    </header>
+
+    <main class="review-shell">
+      <section class="summary-band" aria-label="Run summary">
+        <div>
+          <span>Total</span>
+          <strong id="metric-total">0</strong>
+        </div>
+        <div>
+          <span>STL</span>
+          <strong id="metric-stl">0</strong>
+        </div>
+        <div>
+          <span>Errors</span>
+          <strong id="metric-errors">0</strong>
+        </div>
+        <div>
+          <span>Reviewed</span>
+          <strong id="metric-reviewed">0</strong>
+        </div>
+      </section>
+
+      <section class="toolbar" aria-label="Filters">
+        <div class="segmented">
+          <button type="button" class="active" data-filter="all">All</button>
+          <button type="button" data-filter="stl">STL</button>
+          <button type="button" data-filter="error">Errors</button>
+          <button type="button" data-filter="unreviewed">Unreviewed</button>
+        </div>
+        <div class="toolbar-actions">
+          <div class="segmented compact">
+            <button type="button" class="active" data-mode="browse">Browse</button>
+            <button type="button" data-mode="blind">Blind</button>
+          </div>
+          <button type="button" class="ghost-button" id="refresh">Refresh</button>
+        </div>
+      </section>
+
+      <section class="content-grid" id="browse-view">
+        <div>
+          <div class="result-grid" id="result-grid" aria-label="Run cells"></div>
+        </div>
+
+        <aside class="detail-panel" aria-label="Selected result">
+          <div class="detail-head">
+            <div>
+              <p id="detail-kind">Select a row</p>
+              <h2 id="detail-title">No result selected</h2>
+            </div>
+            <div class="detail-actions">
+              <button type="button" id="load-viewer" class="ghost-button is-hidden">Load 3D</button>
+              <a id="open-viewer" class="open-link is-hidden" href="#" target="_blank" rel="noreferrer">Open viewer</a>
+            </div>
+          </div>
+
+          <div class="viewer-wrap" id="viewer-wrap">
+            <iframe id="detail-viewer" title="Selected STL viewer"></iframe>
+            <div class="empty-viewer" id="empty-viewer">No STL for this cell</div>
+          </div>
+
+          <div class="score-panel">
+            <span>Score</span>
+            <div class="score-row" id="score-row"></div>
+          </div>
+
+          <dl class="detail-list">
+            <div>
+              <dt>Prompt</dt>
+              <dd id="detail-prompt"></dd>
+            </div>
+            <div>
+              <dt>Status</dt>
+              <dd id="detail-status"></dd>
+            </div>
+            <div>
+              <dt>Validation</dt>
+              <dd id="detail-validation"></dd>
+            </div>
+            <div>
+              <dt>Local source</dt>
+              <dd id="detail-source"></dd>
+            </div>
+          </dl>
+
+          <pre class="code-preview" id="code-preview"></pre>
+        </aside>
+      </section>
+
+      <section class="blind-view is-hidden" id="blind-view" aria-label="Blind judging">
+        <div class="blind-stage">
+          <div class="blind-visual" id="blind-visual">
+            <iframe id="blind-viewer" title="Blind STL viewer"></iframe>
+            <div class="empty-viewer" id="blind-empty">No blind item loaded</div>
+          </div>
+
+          <div class="blind-controls">
+            <p class="eyebrow" id="blind-progress">Blind queue</p>
+            <h2 id="blind-title">Randomized visual judging</h2>
+            <p class="blind-note" id="blind-note">
+              Judge only the model. Prompt and category are hidden until you score.
+            </p>
+            <div class="score-panel">
+              <span>Score</span>
+              <div class="score-row" id="blind-score-row"></div>
+            </div>
+            <div class="blind-reveal is-hidden" id="blind-reveal"></div>
+            <div class="blind-actions">
+              <button type="button" class="ghost-button" id="blind-next">Next</button>
+              <button type="button" class="ghost-button" id="blind-shuffle">Shuffle</button>
+            </div>
+          </div>
+        </div>
+
+        <aside class="blind-ledger">
+          <div class="detail-head">
+            <div>
+              <p>Revealed after scoring</p>
+              <h2>Blind scores</h2>
+            </div>
+          </div>
+          <div class="ledger-list" id="blind-ledger"></div>
+        </aside>
+      </section>
+    </main>
+
+    <script type="module" src="./hosted-review.js?v=4"></script>
+  </body>
+</html>

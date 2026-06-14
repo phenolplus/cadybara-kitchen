@@ -1,0 +1,27 @@
+# Hosted blind-review batch for 2026-06-09: 5 curved-snowman prompts x 3 reps.
+#
+# Prepared only; do not run until the researcher explicitly chooses to spend
+# today's hosted API calls. When running, use `--provider-retries 0`.
+experiment_id: "cadybara_online_snowman_20260609_reps3"
+output_path: "projects/cadybara-online-testing/workspace/runs/cadybara_online_snowman_20260609_reps3/results.jsonl"
+output_mode: "cadquery"
+prompt_revision: "hosted_agent_curved_snowman_v1"
+artifact_root: "projects/cadybara-online-testing/workspace/runs/cadybara_online_snowman_20260609_reps3/artifacts"
+prompts_file: "../prompts/curved_snowman_agent_prompts.yaml"
+models:
+  - name: "cadybara-agent-default"
+    provider: "cadybara_api"
+    base_url: "https://api.cadybara.com"
+    timeout_seconds: 120
+    family: "hosted-cadybara"
+    role: "hosted-agent"
+    response_mode: "sse"
+    linear_deflection: 0.1
+    angular_deflection: 0.1
+strategies:
+  - name: "identity"
+sampling:
+  temperatures: [0.0]
+  repetitions: 3
+  max_tokens: 1
+  max_attempts_per_cell: 1

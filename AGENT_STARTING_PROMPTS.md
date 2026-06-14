@@ -1,9 +1,13 @@
 # Agent Starting Prompts
 
-These are optional launch prompts for splitting work across the four active
-projects. They are not the source of truth. Each agent should first read root
-`AGENTS.md`, root `COMMON.md`, and the `README.md` plus `AGENTS.md` in their
-assigned project folder.
+These are optional launch prompts for splitting work across the active
+projects and benchmark workstreams. They are not the source of truth. Each
+agent should first read root `AGENTS.md`, root `COMMON.md`, and the `README.md`
+plus `AGENTS.md` in their assigned project folder.
+
+Each assignment is project-local by default. The folders share contracts, but
+they are not one combined project. Only edit another folder when the assigned
+project's public interface truly requires a paired change.
 
 If an assignment mentions hosted Cadybara API, public Cadybara API, or running
 "online not local", that agent must also read `docs/HOSTED_CADYBARA_API.md`.
@@ -121,7 +125,34 @@ cadybara lab --port 8790
 ```
 
 Then inspect `/lab/`, `/lab/dashboard.html`, `/lab/cad-diffusion.html`, and
-`/viewer/`.
+`/lab/voxel-diffusion.html`, `/lab/hosted-review.html`, and `/viewer/`.
+
+## Agent 5: Direct Codex Benchmark
+
+You are working in `projects/codex-direct-testing/`.
+
+Your job is to maintain the manual Codex-in-this-thread benchmark lane: prompt
+copies, direct CadQuery source written interactively by Codex, the artifact
+packager, and tests that keep the packaged rows comparable with normal
+Cadybara runs.
+
+This is not online testing, not hosted Cadybara API testing, and not a provider
+adapter. Keep generated workspace outputs ignored. If you add or rerun manual
+baselines, make the protocol explicit so the team knows whether it was
+single-shot or allowed repair iterations.
+
+Start by reading:
+
+- `AGENTS.md`
+- `COMMON.md`
+- `projects/codex-direct-testing/README.md`
+- `projects/codex-direct-testing/AGENTS.md`
+
+Run focused tests with:
+
+```bash
+pytest projects/codex-direct-testing/tests -q -p no:cacheprovider
+```
 
 ## Shared Finish Line
 

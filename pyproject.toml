@@ -27,6 +27,13 @@ test = [
 cad-diffusion = [
     "torch>=2.2",
 ]
+voxel-diffusion = [
+    "torch>=2.2",
+    "numpy>=1.26",
+    "trimesh>=4.0",
+    "scikit-image>=0.22",
+    "scipy>=1.11",
+]
 
 [project.scripts]
 cadybara = "cadybara.cli:app"
@@ -48,4 +55,5 @@ testpaths = [
     "projects/local-running/tests",
     "projects/cad-diffusion/tests",
     "projects/cadybara-online-testing/tests",
+    "projects/codex-direct-testing/tests",
 ]

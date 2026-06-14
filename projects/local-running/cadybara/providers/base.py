@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from typing import Any
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class GenerationStopped(RuntimeError):
@@ -22,6 +23,8 @@ class ProviderResponse(BaseModel):
     prompt_eval_duration_ms: int | None = None
     eval_duration_ms: int | None = None
     provider_seed: int | None = None
+    provider_metadata: dict[str, Any] = Field(default_factory=dict)
+    hosted_stl_base64: str | None = None
 
 
 class ModelProvider(ABC):

@@ -1,0 +1,27 @@
+# Hosted blind-review batch for 2026-06-08: 5 wall-planter prompts x 3 reps.
+#
+# Keep this separate from the 2026-06-07 runs so prior models, grades, and
+# rate-limit probes stay append-only and easy to audit.
+experiment_id: "cadybara_online_smoke_blind_20260608_reps3"
+output_path: "projects/cadybara-online-testing/workspace/runs/cadybara_online_smoke_blind_20260608_reps3/results.jsonl"
+output_mode: "cadquery"
+prompt_revision: "hosted_agent_wall_planter_v1"
+artifact_root: "projects/cadybara-online-testing/workspace/runs/cadybara_online_smoke_blind_20260608_reps3/artifacts"
+prompts_file: "../prompts/wall_planter_agent_prompts.yaml"
+models:
+  - name: "cadybara-agent-default"
+    provider: "cadybara_api"
+    base_url: "https://api.cadybara.com"
+    timeout_seconds: 120
+    family: "hosted-cadybara"
+    role: "hosted-agent"
+    response_mode: "sse"
+    linear_deflection: 0.1
+    angular_deflection: 0.1
+strategies:
+  - name: "identity"
+sampling:
+  temperatures: [0.0]
+  repetitions: 3
+  max_tokens: 1
+  max_attempts_per_cell: 1

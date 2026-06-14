@@ -36,6 +36,7 @@ class RunRecord(BaseModel):
     prompt_eval_duration_ms: int | None
     eval_duration_ms: int | None
     provider_seed: int | None
+    provider_metadata: dict[str, Any] = {}
     scores: dict[str, float]
     artifacts: dict[str, Any] = {}
     render_error: str | None = None

@@ -15,10 +15,15 @@ from cadybara.artifacts import sample_mounting_plate, write_part_scene
 from cadybara.cadquery_runner import sample_wall_planter_code, write_cadquery_artifacts
 from cadybara_cad_diffusion import (
     eval_cad_diffusion_run,
+    eval_voxel_diffusion_run,
     latest_checkpoint,
+    latest_voxel_checkpoint,
     prepare_fusion360_dataset,
+    prepare_voxel_dataset,
     sample_diffusion_model,
+    sample_voxel_diffusion_model,
     train_diffusion_model,
+    train_voxel_diffusion_model,
 )
 from cadybara.csv_export import export_attempts_csv
 from cadybara.config import load_config
@@ -49,7 +54,11 @@ app = typer.Typer(help="Run and inspect cadybara prompt-sensitivity experiments.
 cad_diffusion_app = typer.Typer(
     help="Prepare, train, sample, and evaluate CAD-native diffusion pilots."
 )
+voxel_diffusion_app = typer.Typer(
+    help="Prepare, train, sample, and evaluate geometry-native voxel diffusion pilots."
+)
 app.add_typer(cad_diffusion_app, name="cad-diffusion")
+app.add_typer(voxel_diffusion_app, name="voxel-diffusion")
 
 
 @app.command()
@@ -474,6 +483,135 @@ def cad_diffusion_eval(
     typer.echo(f"unique_token_sequences={summary.unique_token_sequences}")
     typer.echo(f"unique_programs={summary.unique_programs}")
     typer.echo(f"mean_nearest_neighbor_distance={summary.mean_nearest_neighbor_distance}")
+
+
+@voxel_diffusion_app.command("prepare")
+def voxel_diffusion_prepare(
+    source_dir: Path = typer.Argument(
+        Path("projects/cad-diffusion/workspace/datasets/fusion360_gallery/r1.0.1/reconstruction")
+    ),
+    output_dir: Path = typer.Option(
+        Path("projects/cad-diffusion/workspace/datasets/fusion360_voxels_64"),
+        "--output-dir",
+    ),
+    resolution: int = typer.Option(64, "--resolution", min=8),
+    max_examples: int | None = typer.Option(None, "--max-examples", min=1),
+) -> None:
+    try:
+        manifest = prepare_voxel_dataset(
+            source_dir,
+            output_dir,
+            resolution=resolution,
+            max_examples=max_examples,
+        )
+    except (RuntimeError, ValueError) as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+    typer.echo(f"Scanned OBJ files: {manifest.scanned_obj}")
+    typer.echo(f"Wrote voxel examples: {manifest.written}")
+    typer.echo(f"Failed examples: {manifest.failed}")
+    typer.echo(f"Prepared dataset: {output_dir / 'manifest.json'}")
+
+
+@voxel_diffusion_app.command("train")
+def voxel_diffusion_train(
+    data_dir: Path = typer.Argument(Path("projects/cad-diffusion/workspace/datasets/fusion360_voxels_64")),
+    output_dir: Path = typer.Option(
+        Path("projects/cad-diffusion/workspace/models/voxel_diffusion_64_20260608"),
+        "--output-dir",
+    ),
+    resolution: int = typer.Option(64, "--resolution", min=8),
+    max_steps: int = typer.Option(1000, "--max-steps", min=1),
+    batch_size: int = typer.Option(1, "--batch-size", min=1),
+    base_channels: int = typer.Option(16, "--base-channels", min=4),
+    timesteps: int = typer.Option(1000, "--timesteps", min=10),
+    learning_rate: float = typer.Option(2e-4, "--learning-rate", min=1e-6),
+    checkpoint_interval: int = typer.Option(100, "--checkpoint-interval", min=1),
+    time_limit_minutes: float = typer.Option(480.0, "--time-limit-minutes", min=0.1),
+    seed: int = typer.Option(20260608, "--seed"),
+    resume: bool = typer.Option(True, "--resume/--no-resume"),
+) -> None:
+    try:
+        summary = train_voxel_diffusion_model(
+            data_dir,
+            output_dir,
+            resolution=resolution,
+            max_steps=max_steps,
+            batch_size=batch_size,
+            base_channels=base_channels,
+            timesteps=timesteps,
+            learning_rate=learning_rate,
+            checkpoint_interval=checkpoint_interval,
+            time_limit_minutes=time_limit_minutes,
+            seed=seed,
+            resume=resume,
+        )
+    except (RuntimeError, ValueError) as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+    typer.echo(
+        f"trained_steps={summary.steps} examples={summary.examples} "
+        f"device={summary.device} elapsed_seconds={summary.elapsed_seconds:.1f}"
+    )
+    typer.echo(f"checkpoint={summary.checkpoint_path}")
+
+
+@voxel_diffusion_app.command("sample")
+def voxel_diffusion_sample(
+    checkpoint_path: Path | None = typer.Argument(None),
+    run_dir: Path = typer.Option(
+        Path("projects/cad-diffusion/workspace/runs/voxel_diffusion_64_sample_001"),
+        "--run-dir",
+    ),
+    model_dir: Path = typer.Option(
+        Path("projects/cad-diffusion/workspace/models/voxel_diffusion_64_20260608"),
+        "--model-dir",
+    ),
+    data_dir: Path = typer.Option(
+        Path("projects/cad-diffusion/workspace/datasets/fusion360_voxels_64"),
+        "--data-dir",
+    ),
+    count: int = typer.Option(10, "--count", min=1),
+    sample_steps: int = typer.Option(50, "--sample-steps", min=1),
+    threshold: float = typer.Option(0.5, "--threshold", min=0.0, max=1.0),
+    seed: int = typer.Option(20260608, "--seed"),
+) -> None:
+    resolved_checkpoint = checkpoint_path or latest_voxel_checkpoint(model_dir)
+    if resolved_checkpoint is None:
+        typer.echo(f"Error: no checkpoint found in {model_dir}", err=True)
+        raise typer.Exit(code=1)
+    try:
+        records = sample_voxel_diffusion_model(
+            resolved_checkpoint,
+            run_dir,
+            count=count,
+            sample_steps=sample_steps,
+            threshold=threshold,
+            seed=seed,
+            data_dir=data_dir,
+        )
+    except (RuntimeError, ValueError) as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+    renderable = sum(1 for record in records if record.artifacts.get("stl") and record.export_error is None)
+    typer.echo(f"sampled={len(records)} renderable={renderable} run_dir={run_dir}")
+
+
+@voxel_diffusion_app.command("eval")
+def voxel_diffusion_eval(
+    run_dir: Path = typer.Argument(Path("projects/cad-diffusion/workspace/runs/voxel_diffusion_64_sample_001")),
+) -> None:
+    try:
+        summary = eval_voxel_diffusion_run(run_dir)
+    except ValueError as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+    typer.echo(f"total={summary.total}")
+    typer.echo(f"renderable={summary.renderable}")
+    typer.echo(f"nonempty={summary.nonempty}")
+    typer.echo(f"mean_occupancy_ratio={summary.mean_occupancy_ratio}")
+    typer.echo(f"mean_largest_component_ratio={summary.mean_largest_component_ratio}")
+    typer.echo(f"mean_novelty_iou_nearest={summary.mean_novelty_iou_nearest}")
 
 
 @app.command()

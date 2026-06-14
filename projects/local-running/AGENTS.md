@@ -15,9 +15,10 @@ runner, providers, CadQuery export, model queue, worker scripts, and local tests
 ## Boundaries
 
 - This project owns the shared `cadybara` CLI.
-- This project owns model provider adapters. If the task is hosted Cadybara API
-  integration, read `../../docs/HOSTED_CADYBARA_API.md` and add a provider here
-  rather than wiring hosted calls into online-testing.
+- This project owns model provider adapters. Hosted Cadybara API integration is
+  `cadybara/providers/cadybara_api.py`; read
+  `../../docs/HOSTED_CADYBARA_API.md` before changing it, and keep hosted calls
+  out of online-testing.
 - It may import the CAD diffusion and online testing packages for CLI
   subcommands, but do not move their core logic here.
 - Do not duplicate lab-server behavior from `projects/cadybara-online-testing/`.

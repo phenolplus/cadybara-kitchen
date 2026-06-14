@@ -12,9 +12,14 @@ means the local lab control plane unless a task explicitly says hosted
 
 ## Current Architecture
 
-- The active repo has four projects: `projects/local-running/`,
+- The active repo has separate projects that share one repository. Do not treat
+  them as one combined app just because a feature crosses folders.
+- The four core projects are `projects/local-running/`,
   `projects/cad-diffusion/`, `projects/cadybara-online-testing/`, and
   `projects/website/`.
+- `projects/codex-direct-testing/` is an active benchmark sandbox for manual
+  Codex-in-this-thread CAD baselines. It is not online testing and it is not a
+  provider API.
 - The live M1/M2 harness is Python + Typer + JSONL + CadQuery + a small
   `http.server` lab + vanilla HTML/CSS/JS.
 - Ignore old React/FastAPI/SQLite notes in parked sandbox archives when
@@ -30,23 +35,32 @@ means the local lab control plane unless a task explicitly says hosted
 - hatchling `pyproject.toml`
 - Runtime deps: CadQuery, httpx, pydantic v2, PyYAML, Typer, Rich
 - Test deps: pytest, respx
-- Optional CAD diffusion training dep: PyTorch behind the `cad-diffusion` extra
+- Optional CAD token diffusion training dep: PyTorch behind the `cad-diffusion`
+  extra
+- Optional voxel diffusion deps: PyTorch, NumPy, trimesh, scikit-image, and
+  SciPy behind the `voxel-diffusion` extra
 - Frontend: vanilla HTML/CSS/JS served directly from `projects/website/lab/`
   and `projects/website/viewer/`
 - Optional charting: uPlot only, and only when genuinely needed
 
 ## Project Boundaries
 
+- Each folder under `projects/` is a project boundary. It should have its own
+  `README.md`, `AGENTS.md`, focused tests, ignored `workspace/` data, and
+  contribution rules.
 - `projects/local-running/` owns the shared `cadybara` CLI, config schema,
   providers, runner, CadQuery artifact path, model queue, worker scripts, and
   local tests.
 - `projects/cad-diffusion/` owns CAD-token dataset prep, grammar, training,
-  sampling, generated sample artifacts, and evaluation.
+  sampling, voxel diffusion, generated sample artifacts, and evaluation.
 - `projects/cadybara-online-testing/` owns the lab server, endpoint contracts,
   progress payloads, current worker job state, review scores, and grading
   helpers.
-- `projects/website/` owns the static browser UI and assets. It can rely on
-  lab APIs, but it should not duplicate Python runner logic.
+- `projects/codex-direct-testing/` owns direct Codex-written baseline CAD
+  source, prompt copies, and its own ignored workspace outputs.
+- `projects/website/` owns the static browser UI and assets, including hosted
+  review and CAD/voxel diffusion pages. It can rely on lab APIs, but it should
+  not duplicate Python runner logic.
 - `projects/_parked-not-active/` is preserved history. Do not reactivate,
   delete, or rewrite it unless explicitly asked.
 
@@ -54,8 +68,9 @@ Hosted Cadybara product API work should start at the provider boundary in
 `projects/local-running/`, then use online-testing configs/lab status as the
 consumer. Do not hard-code hosted API calls directly into the lab server.
 
-Cross-project edits are allowed when the public contract needs to move, but
-keep them narrow and update the relevant docs/tests together.
+Cross-project edits are allowed when an explicit public contract needs to move,
+but keep them narrow. Update the docs/tests for every project whose contract
+changed, and leave unrelated project internals alone.
 
 ## Research Principles
 
@@ -68,6 +83,8 @@ keep them narrow and update the relevant docs/tests together.
   source-code rubric scores.
 - CAD diffusion v0 is a CAD-token denoising experiment over simple extrude
   programs. Do not describe it as finished full Stable Diffusion for CAD.
+- Voxel diffusion is a geometry-native experiment over normalized occupancy
+  grids. Do not describe it as parametric CAD recovery or text-to-CAD.
 
 ## Data Integrity
 
@@ -97,10 +114,13 @@ keep them narrow and update the relevant docs/tests together.
 - Hosted product API notes: `docs/HOSTED_CADYBARA_API.md`
 - Active local runner configs: `projects/local-running/configs/`
 - Active online testing configs: `projects/cadybara-online-testing/configs/`
+- Direct Codex baseline sandbox: `projects/codex-direct-testing/`
 - CAD diffusion data/checkpoints/runs: `projects/cad-diffusion/workspace/`
 - Parked old research data: `projects/_parked-not-active/old-research-data/`
 - Live runs: `projects/<project-name>/workspace/runs/<experiment_id>/`
 - Result snapshots for sharing: `results/<experiment_id>/<timestamp_machine>/`
+- Current hosted smoke snapshot:
+  `results/cadybara_online_smoke_reps2/20260606_163617_windows/`
 
 ## Verification
 
