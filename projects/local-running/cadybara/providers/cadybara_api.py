@@ -62,6 +62,7 @@ class CadybaraApiProvider(ModelProvider):
         api_key_env: str = "CADYBARA_API_KEY",
         hosted_model_id: str | None = None,
         response_mode: Literal["json", "stl", "sse"] = "json",
+        export_format: Literal["stl", "step", "code"] = "stl",
         linear_deflection: float = 0.1,
         angular_deflection: float = 0.1,
         unwrap_prompt: bool = True,
@@ -72,6 +73,7 @@ class CadybaraApiProvider(ModelProvider):
         self.api_key_env = api_key_env
         self.hosted_model_id = hosted_model_id
         self.response_mode = response_mode
+        self.export_format = export_format
         self.linear_deflection = linear_deflection
         self.angular_deflection = angular_deflection
         self.unwrap_prompt = unwrap_prompt
@@ -106,6 +108,7 @@ class CadybaraApiProvider(ModelProvider):
         payload: dict[str, object] = {
             "prompt": prompt_to_send,
             "response_mode": self.response_mode,
+            "export_format": self.export_format,
             "linear_deflection": self.linear_deflection,
             "angular_deflection": self.angular_deflection,
         }
@@ -232,8 +235,13 @@ class CadybaraApiProvider(ModelProvider):
         validation = data.get("validation") if isinstance(data, dict) else None
         validation_valid = validation.get("valid") if isinstance(validation, dict) else None
         stl_base64 = data.get("stl_base64")
+        if not isinstance(stl_base64, str) and data.get("export_format") == "stl":
+            stl_base64 = data.get("model_base64")
         if not isinstance(stl_base64, str):
             stl_base64 = None
+        model_base64 = data.get("model_base64")
+        if not isinstance(model_base64, str):
+            model_base64 = None
         finish_reason = "validation_valid" if validation_valid is True else "validation_invalid"
         return ProviderResponse(
             output=generated_code.strip() + "\n",
@@ -244,8 +252,11 @@ class CadybaraApiProvider(ModelProvider):
             total_duration_ms=wall_latency_ms,
             provider_metadata={
                 "response_mode": data.get("response_mode"),
+                "export_format": data.get("export_format"),
                 "validation": validation if isinstance(validation, dict) else None,
                 "hosted_stl_base64_chars": len(stl_base64) if stl_base64 else None,
+                "model_base64_chars": len(model_base64) if model_base64 else None,
+                "metrics": data.get("metrics") if isinstance(data.get("metrics"), dict) else None,
                 "generated_code_chars": len(generated_code),
             },
             hosted_stl_base64=stl_base64,

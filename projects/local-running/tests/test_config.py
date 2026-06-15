@@ -84,6 +84,7 @@ sampling:
     default_lines = """
     api_key_env: "CADYBARA_API_KEY"
     response_mode: "sse"
+    export_format: "stl"
     linear_deflection: 0.1
     angular_deflection: 0.1
     unwrap_cadquery_prompt: true
@@ -102,3 +103,4 @@ sampling:
 
     assert config_hash(load_config(plain)) == config_hash(load_config(explicit_defaults))
     assert load_config(explicit_defaults).models[0].response_mode == "sse"
+    assert load_config(explicit_defaults).models[0].export_format == "stl"

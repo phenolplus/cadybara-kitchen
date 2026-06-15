@@ -18,9 +18,11 @@ def test_cadybara_api_provider_posts_agent_request_and_returns_code(monkeypatch)
             200,
             json={
                 "generated_code": 'import cadquery as cq\nresult = cq.Workplane("XY").box(20, 20, 20)\n',
-                "stl_base64": "c29saWQK",
+                "model_base64": "c29saWQK",
+                "export_format": "stl",
                 "validation": {"valid": True, "confidence": 1.0},
                 "response_mode": "json",
+                "metrics": {"credit_use": 123, "latency": 4.2},
             },
         )
     )
@@ -43,6 +45,7 @@ def test_cadybara_api_provider_posts_agent_request_and_returns_code(monkeypatch)
     assert body == {
         "prompt": "Make a 20 mm cube.",
         "response_mode": "json",
+        "export_format": "stl",
         "linear_deflection": 0.1,
         "angular_deflection": 0.1,
     }
@@ -51,6 +54,8 @@ def test_cadybara_api_provider_posts_agent_request_and_returns_code(monkeypatch)
     assert response.total_duration_ms is not None
     assert response.hosted_stl_base64 == "c29saWQK"
     assert response.provider_metadata["hosted_stl_base64_chars"] == 8
+    assert response.provider_metadata["model_base64_chars"] == 8
+    assert response.provider_metadata["metrics"] == {"credit_use": 123, "latency": 4.2}
 
 
 @respx.mock
@@ -78,9 +83,36 @@ def test_cadybara_api_provider_can_send_explicit_hosted_model(monkeypatch) -> No
 
     body = json.loads(route.calls.last.request.read())
     assert body["model"] == "actual-chat-model"
+    assert body["export_format"] == "stl"
     assert body["linear_deflection"] == 0.2
     assert body["angular_deflection"] == 0.3
     assert response.finish_reason == "validation_invalid"
+
+
+@respx.mock
+def test_cadybara_api_provider_keeps_legacy_stl_base64(monkeypatch) -> None:
+    monkeypatch.setenv("CADYBARA_API_KEY", "pfk_test")
+    respx.post("https://api.cadybara.com/api/agent/generate").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "generated_code": 'import cadquery as cq\nresult = cq.Workplane("XY").box(1, 1, 1)\n',
+                "stl_base64": "c29saWQK",
+                "validation": {"valid": True},
+                "response_mode": "json",
+            },
+        )
+    )
+    provider = CadybaraApiProvider(
+        model_name="cadybara-agent-default",
+        base_url="https://api.cadybara.com",
+    )
+
+    response = provider.generate("Make a tiny cube.", temperature=0.0, max_tokens=1, seed=None)
+
+    assert response.hosted_stl_base64 == "c29saWQK"
+    assert response.provider_metadata["hosted_stl_base64_chars"] == 8
+    assert response.provider_metadata["model_base64_chars"] is None
 
 
 @respx.mock
@@ -95,7 +127,8 @@ def test_cadybara_api_provider_reads_sse_result(monkeypatch) -> None:
             (
                 'data: {"type":"result","generated_code":"import cadquery as cq\\n'
                 'result = cq.Workplane(\\"XY\\").box(2, 2, 2)\\n",'
-                '"stl_base64":"c29saWQK","validation":{"valid":true},'
+                '"model_base64":"c29saWQK","export_format":"stl",'
+                '"validation":{"valid":true},'
                 '"response_mode":"sse"}'
             ),
             "",
@@ -118,10 +151,12 @@ def test_cadybara_api_provider_reads_sse_result(monkeypatch) -> None:
 
     body = json.loads(route.calls.last.request.read())
     assert body["response_mode"] == "sse"
+    assert body["export_format"] == "stl"
     assert response.output.startswith("import cadquery as cq")
     assert response.finish_reason == "validation_valid"
     assert response.hosted_stl_base64 == "c29saWQK"
     assert response.provider_metadata["response_mode"] == "sse"
+    assert response.provider_metadata["export_format"] == "stl"
     assert response.provider_metadata["sse_event_counts"] == {
         "session": 1,
         "export": 1,

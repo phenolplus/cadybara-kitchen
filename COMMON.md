@@ -116,9 +116,10 @@ tokens become a `CadProgram`, the program compiles to CadQuery, then the same
 STL/STEP/preview path is attempted.
 
 Hosted Cadybara API artifacts can also contain `hosted_model.stl`, decoded from
-server-returned `stl_base64`. Keep it alongside the local source/export result.
-If the returned source imports server-only helpers and local execution fails,
-that local failure remains data even though the hosted STL is viewable.
+server-returned `model_base64` or legacy `stl_base64`. Keep it alongside the
+local source/export result. If the returned source imports server-only helpers
+or includes editor/viewer boilerplate and local execution fails, that local
+failure remains data even though the hosted STL is viewable.
 
 CAD diffusion has one extra integrity rule: grammar validation and constrained
 decoding are allowed, but silent post-hoc repair is not. If the sampler emits an
@@ -181,9 +182,11 @@ regenerate model outputs or rewrite source reviews.
 
 The public hosted Cadybara API lives at `https://api.cadybara.com`. Agent
 generation uses `POST /api/agent/generate` with an `X-API-Key` header and a JSON
-body containing `prompt`, `response_mode`, optional `model`, and mesh deflection
-fields. The confirmed final response includes `generated_code`, `stl_base64`,
-`validation`, and `response_mode`.
+body containing `prompt`, `response_mode`, `export_format`, optional `model`,
+and mesh deflection fields. The confirmed final response includes
+`generated_code`, `model_base64` for current STL exports, `validation`,
+`export_format`, and `response_mode`. Older responses used `stl_base64`, which
+the provider still accepts.
 
 Use `response_mode: "sse"` for hosted smoke runs. Production sits behind an AWS
 ALB with a 60 second idle timeout; SSE progress/heartbeat events keep long
@@ -197,9 +200,9 @@ JSONL flow as local Ollama failures. The active hosted smoke config is
 `projects/cadybara-online-testing/configs/online_smoke.yaml`, which uses the
 five wall-planter prompts in
 `projects/cadybara-online-testing/prompts/wall_planter_agent_prompts.yaml`.
-The provider preserves hosted `stl_base64` as an artifact when it is available;
-if returned source code is not standalone locally, that source/export failure is
-still recorded as data.
+The provider preserves hosted `model_base64` or legacy `stl_base64` as an
+artifact when it is available; if returned source code is not standalone
+locally, that source/export failure is still recorded as data.
 
 Follow-on hosted batches currently live beside the smoke config: blind
 wall-planter repeats, gapfill/hook/snowman prompt sets, and saved rate-limit

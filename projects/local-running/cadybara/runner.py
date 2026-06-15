@@ -140,6 +140,7 @@ def provider_for_model(model: ModelConfig, *, dry_run: bool) -> tuple[str, Model
                 api_key_env=model.api_key_env,
                 hosted_model_id=model.hosted_model_id,
                 response_mode=model.response_mode,
+                export_format=model.export_format,
                 linear_deflection=model.linear_deflection,
                 angular_deflection=model.angular_deflection,
                 unwrap_prompt=model.unwrap_cadquery_prompt,

@@ -149,8 +149,8 @@ runs the same style of agentic workflow as `/api/chat/stream`:
 intent -> design -> implement -> validation -> repair/validation if needed -> exit
 ```
 
-The client does not receive the stream. The endpoint returns the final STL or a
-JSON envelope, depending on `response_mode`.
+The endpoint returns progress over SSE when requested and controls exported
+geometry through `export_format`.
 
 Headers:
 
@@ -165,6 +165,7 @@ Request body:
 | --- | --- | --- | --- |
 | `prompt` | string | required | Natural-language description of the model |
 | `response_mode` | `"json"`, `"stl"`, or `"sse"` | `"json"` | Structured JSON, binary STL, or server-sent events |
+| `export_format` | `"stl"`, `"step"`, or `"code"` | `"stl"` | Geometry payload to export. This repo uses `"stl"` so hosted geometry can be reviewed even when returned source fails locally. |
 | `model` | string or null | tier default | Optional model ID from the chat model selector |
 | `linear_deflection` | number | `0.1` | Mesh density; lower is finer, typical `0.01` to `0.5` |
 | `angular_deflection` | number | `0.1` | Angular tolerance in radians, typical `0.01` to `0.5` |
@@ -175,6 +176,7 @@ Minimal JSON request:
 {
   "prompt": "Create a simple 20 mm cube with rounded edges.",
   "response_mode": "json",
+  "export_format": "stl",
   "linear_deflection": 0.1,
   "angular_deflection": 0.1
 }
@@ -187,6 +189,7 @@ $key = [Environment]::GetEnvironmentVariable("CADYBARA_API_KEY", "User")
 $body = @{
   prompt = "Create a simple 20 mm cube with rounded edges."
   response_mode = "json"
+  export_format = "stl"
   linear_deflection = 0.1
   angular_deflection = 0.1
 } | ConvertTo-Json
@@ -205,7 +208,8 @@ Known JSON success shape:
 ```json
 {
   "generated_code": "import cadquery as cq\n...",
-  "stl_base64": "...",
+  "export_format": "stl",
+  "model_base64": "...",
   "validation": {
     "valid": true,
     "confidence": 1.0,
@@ -216,6 +220,9 @@ Known JSON success shape:
 }
 ```
 
+Older hosted responses used `stl_base64`; the local provider accepts both
+`model_base64` and legacy `stl_base64` for STL exports.
+
 `response_mode: "stl"` returns a binary STL response instead of the JSON
 envelope. That is useful for product consumers but not ideal for this repo's
 source-code grading path, because the local harness grades and artifacts around
@@ -223,9 +230,10 @@ CadQuery source.
 
 `response_mode: "sse"` streams progress, heartbeat, export, and final result
 events. The final `type: "result"` event has the same `generated_code`,
-`stl_base64`, `validation`, and `response_mode` fields as JSON mode. Use SSE
-for this repo's hosted smoke runs because it avoids the production ALB's
-60-second idle timeout while still giving the harness source code and STL bytes.
+`model_base64`, `validation`, `export_format`, and `response_mode` fields as
+JSON mode. Use SSE with `export_format: "stl"` for this repo's hosted smoke
+runs because it avoids the production ALB's 60-second idle timeout while still
+giving the harness source code and hosted STL bytes.
 
 ## Repo Integration
 
@@ -244,6 +252,7 @@ models:
     base_url: "https://api.cadybara.com"
     timeout_seconds: 75
     response_mode: "sse"
+    export_format: "stl"
 ```
 
 Use `name: "cadybara-agent-default"` to omit the optional `model` field and let
@@ -264,11 +273,13 @@ request instead of this repo's CadQuery instruction template. The provider also
 keeps an unwrap guard for direct/manual calls. It returns `generated_code` as
 the provider output.
 
-The provider also preserves `stl_base64` from the hosted response. Artifact
-writing stores that STL as `hosted_model.stl`; if local execution of
-`generated_code` fails because the source is multi-file or imports server-only
-helpers, the row still records `render_error.txt` while exposing the hosted STL
-for viewing. Do not erase the local source failure to make the row look cleaner.
+The provider preserves `model_base64` from current hosted responses and legacy
+`stl_base64` from older responses. Artifact writing stores that STL as
+`hosted_model.stl`; if local execution of `generated_code` fails because the
+source is multi-file, imports server-only helpers, or includes editor/viewer
+boilerplate, the row still records `render_error.txt` while exposing the hosted
+STL for viewing. Do not erase the local source failure to make the row look
+cleaner.
 
 The active hosted smoke config is:
 
@@ -306,8 +317,8 @@ SSE before changing prompts. The likely next questions for the API owner are:
 - Is there a cheaper/faster model suitable for smoke testing?
 - Are rate-limit or usage headers exposed on agent responses?
 - Is `generated_code` supposed to be a standalone single-file CadQuery script,
-  or can it reference server-side helper modules while `stl_base64` remains the
-  authoritative export?
+  or can it reference server-side helper modules while `model_base64` remains
+  the authoritative export?
 
 ## Manual Diagnostics
 

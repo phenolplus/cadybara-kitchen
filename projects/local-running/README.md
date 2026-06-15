@@ -148,8 +148,10 @@ default. It does not commit live `workspace/` data directly.
 - Hosted Cadybara API support is implemented for `response_mode: "json"`,
   `"stl"`, and `"sse"`. Use `"sse"` for hosted smoke runs because the
   production load balancer can time out quiet JSON requests around 60 seconds.
-  This repo still prefers JSON/SSE final payloads over binary-only STL mode
-  because source-code grading needs `generated_code`. See
+  This repo sends `export_format: "stl"` and still prefers JSON/SSE final
+  payloads over binary-only STL mode because source-code grading needs
+  `generated_code`; hosted STL bytes are preserved separately for visual review.
+  See
   `../../docs/HOSTED_CADYBARA_API.md`.
 - CadQuery execution is intentionally not repaired or normalized into success.
 - Model cleanup can remove configured local Ollama models unless disabled with

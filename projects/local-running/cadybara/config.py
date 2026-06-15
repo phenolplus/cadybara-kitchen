@@ -25,6 +25,7 @@ class ModelConfig(BaseModel):
     api_key_env: str = "CADYBARA_API_KEY"
     hosted_model_id: str | None = None
     response_mode: Literal["json", "stl", "sse"] = "json"
+    export_format: Literal["stl", "step", "code"] = "stl"
     linear_deflection: float = Field(default=0.1, gt=0)
     angular_deflection: float = Field(default=0.1, gt=0)
     unwrap_cadquery_prompt: bool = True
@@ -177,6 +178,7 @@ def _prune_hash_defaults(value: Any) -> Any:
             or (key == "vision" and item is False)
             or (key == "api_key_env" and item == "CADYBARA_API_KEY")
             or key == "response_mode"
+            or (key == "export_format" and item == "stl")
             or (key == "linear_deflection" and item == 0.1)
             or (key == "angular_deflection" and item == 0.1)
             or (key == "unwrap_cadquery_prompt" and item is True)
