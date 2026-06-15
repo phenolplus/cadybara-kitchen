@@ -1,0 +1,37 @@
+- id: hook_05_printable
+  specificity_level: 5
+  text: |
+    Design a single-piece 3D-printable wall hook for holding cables or
+    headphones. The model should include a flat rectangular wall plate, two
+    recessed circular screw holes aligned vertically, a thick smooth hook that
+    curves forward and slightly upward, rounded edges, and a flat back face for
+    mounting against a wall.
+
+- id: snowman_01_minimal
+  specificity_level: 1
+  text: |
+    Design a curved snowman made from three rounded-square body sections stacked
+    vertically, with three circular button holes on the left side and three
+    circular button holes on the right side.
+
+- id: snowman_03_clear
+  specificity_level: 3
+  text: |
+    Design a stylized curved snowman figurine made from three rounded-square
+    body blocks stacked vertically, largest on the bottom and smallest on top.
+    The stack should bend gently instead of being perfectly straight. Add three
+    circular button holes down the left side and three matching circular button
+    holes down the right side.
+
+- id: hook_03_clear
+  specificity_level: 3
+  text: |
+    Design a single-piece 3D-printable wall-mounted cable or headphone hook.
+    It should have a flat vertical back plate, two circular screw holes for
+    mounting, and one smooth curved hook projecting forward from the plate.
+
+- id: hook_01_minimal
+  specificity_level: 1
+  text: |
+    Design a 3D-printable curved wall-mounted hook with a flat back plate and
+    two circular screw holes.

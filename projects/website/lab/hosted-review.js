@@ -156,6 +156,8 @@ function sampleLabel(item) {
     cadybara_online_hook_20260611_reps3: "2026-06-11 wall hook",
     cadybara_online_gapfill_20260612_reps3: "2026-06-12 gap fill",
     cadybara_online_gapfill2_20260613_reps3: "2026-06-13 gap fill",
+    cadybara_online_gapfill3_20260614_reps3: "2026-06-14 gap fill",
+    cadybara_online_gapfill_solidish_20260615_reps3: "2026-06-15 solid-ish",
   };
   const experiment = labels[item.experiment_id] || item.experiment_id || "run";
   return `${shortPromptId(item.seed_id)} (${experiment}, rep ${Number(item.repetition) + 1})`;

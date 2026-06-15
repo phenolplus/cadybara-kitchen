@@ -1,0 +1,3 @@
+[submodule "projects/cadgenbench"]
+	path = projects/cadgenbench
+	url = https://github.com/huggingface/cadgenbench.git

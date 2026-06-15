@@ -64,6 +64,12 @@ training logic from cad-diffusion, or browser implementation from website.
   review ladder with gap-fill, hook, and snowman prompt mixes. They should be
   preserved as separate experiment records instead of merged into the older
   wall-planter smoke files.
+- `configs/online_gapfill3_20260614_reps3.yaml` keeps filling the lowest-count
+  renderable hook/snowman buckets using
+  `prompts/gapfill2_hook_snowman_agent_prompts.yaml`.
+- `configs/online_gapfill_solidish_20260615_reps3.yaml` avoids the brittle
+  `hook_10_full` bucket and targets five lower-count prompts from
+  `prompts/gapfill_solidish_20260615_agent_prompts.yaml`.
 - `cadybara_online_testing/blind_report.py` rebuilds the combined blind-review
   manifest and CSVs from saved run JSONL plus append-only review scores. Use it
   after new pulls or new browser scores to refresh prompt-specific averages and

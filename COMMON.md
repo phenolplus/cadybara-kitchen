@@ -39,6 +39,9 @@ boundaries.
     as an online run.
 11. Publishable result snapshots are copied from project `workspace/` folders
     into `results/` by worker publish tooling.
+12. `projects/cadgenbench/` can be initialized as an external submodule for
+    reading CADGenBench's benchmark contract. Cadybara does not yet export
+    runs into CADGenBench submission folders.
 
 Important naming trap: `projects/cadybara-online-testing/` is currently named
 for the lab/control-plane layer, not for the hosted Cadybara product API. If a
@@ -215,6 +218,29 @@ The current shareable hosted smoke snapshot is
 `results/cadybara_online_smoke_reps2/20260606_163617_windows/`. It is small
 enough to review in Git and exists to let collaborators inspect the hosted rows
 without pulling ignored worker state.
+
+## CADGenBench Reference
+
+`projects/cadgenbench/` is an external Git submodule, not a normal Cadybara
+project folder. It contains CADGenBench's own evaluator, submission contract,
+fixtures, docs, and optional baseline agent. It uses Python 3.12+ and should be
+initialized explicitly:
+
+```bash
+git submodule update --init --recursive projects/cadgenbench
+```
+
+The intended future bridge is:
+
+```text
+Cadybara run artifacts
+  -> selected model.stl/model.step or hosted_model.stl
+  -> CADGenBench sample folder with output.*
+  -> cadgenbench evaluate / leaderboard submission
+```
+
+That bridge is not implemented yet. Until it is, do not describe Cadybara
+results as CADGenBench submissions.
 
 ## Dedicated Worker Box
 

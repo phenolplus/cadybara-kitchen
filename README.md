@@ -26,6 +26,9 @@ The short version:
 7. `projects/codex-direct-testing/` holds manual Codex-in-this-thread CAD
    baselines outside online-testing so they can be compared without pretending
    they came from a provider API.
+8. `projects/cadgenbench/` is an external CADGenBench submodule for benchmark
+   reference and future export compatibility work. It is not vendored Cadybara
+   source.
 
 For shared terms and dataflow details, read `COMMON.md`. Shared concepts do not
 make the folders one combined project; they are contracts that let independent
@@ -35,6 +38,10 @@ If you are trying to run against the hosted Cadybara product API rather than
 local Ollama, read `docs/HOSTED_CADYBARA_API.md` first. The active
 `online_smoke.yaml` uses the hosted `cadybara_api` provider with
 `response_mode: "sse"` and requires `CADYBARA_API_KEY`.
+
+If you are trying to compare Cadybara outputs against CADGenBench, read
+`docs/CADGENBENCH_INTEGRATION.md`. That bridge is documented as future work;
+there is no Cadybara-to-CADGenBench export adapter yet.
 
 ## Status Snapshot
 
@@ -48,6 +55,7 @@ AI agents arriving without extra context.
 | `projects/cad-diffusion/` | Token grammar round-trips simple CAD programs, prepares supported Fusion-style examples, trains/samples/evaluates token diffusion, and has a voxel diffusion path with dataset prep, training, sampling, STL export, and metrics. | CAD-token v0 only covers simple rectangle/circle extrudes, text conditioning is not implemented, voxel diffusion learns occupancy geometry rather than editable CAD, and datasets/checkpoints stay in ignored `workspace/`. |
 | `projects/website/` | Static landing, demo auth, project dashboard, hosted review board, CAD diffusion page, voxel diffusion page, and Three.js viewer are present as vanilla HTML/CSS/JS. | Dashboard is intentionally a stable project library, not live telemetry; richer `lab/app.js` is preserved but not the active routed dashboard. |
 | `projects/codex-direct-testing/` | Manual Codex-written CadQuery baselines can be packaged into comparable JSONL/artifacts and tested against prompt sets. | This is interactive benchmark data, not hosted/API output; any repair iterations must be documented as part of the protocol. |
+| `projects/cadgenbench/` | External CADGenBench benchmark source is available as a submodule pinned to a known upstream commit. | It uses its own Python 3.12+ environment and is not integrated with Cadybara output export yet. Initialize it explicitly with `git submodule update --init --recursive projects/cadgenbench`. |
 | `projects/_parked-not-active/` | Old wall-planter research, Kaggle work, and sandbox archives are preserved. | Historical docs may mention obsolete paths or architectures and should not drive current work. |
 
 ## Project Independence
@@ -155,6 +163,25 @@ Use this folder when comparing direct interactive Codex CAD work against
 hosted/API or CADAM-style tool workflows. Do not put these outputs under
 `projects/cadybara-online-testing/`, and do not describe them as normal
 single-shot provider generations unless the manual protocol was frozen.
+
+### `projects/cadgenbench/`
+
+The external CADGenBench benchmark checkout.
+
+This is a Git submodule, not Cadybara-owned source. It points at
+`https://github.com/huggingface/cadgenbench.git` and keeps CADGenBench's Python
+3.12+ evaluator, metrics, fixtures, docs, and optional baseline agent separate
+from the Cadybara Python 3.11+ workspace.
+
+Initialize it after cloning with:
+
+```bash
+git submodule update --init --recursive projects/cadgenbench
+```
+
+Use this folder when reading CADGenBench's submission contract or planning a
+future exporter from Cadybara run artifacts into CADGenBench `output.*`
+candidate folders. That exporter does not exist yet.
 
 ## Parked Work
 
@@ -277,6 +304,8 @@ cadybara voxel-diffusion eval projects/cad-diffusion/workspace/runs/voxel_diffus
 - `COMMON.md` explains shared concepts and cross-project dataflow contracts.
 - `docs/HOSTED_CADYBARA_API.md` records the current state of the public hosted
   Cadybara API investigation.
+- `docs/CADGENBENCH_INTEGRATION.md` explains the CADGenBench submodule and the
+  future Cadybara-to-CADGenBench export bridge.
 - Root `AGENTS.md` gives repository-wide agent rules.
 - Each active project has its own `README.md` and `AGENTS.md`.
 - `projects/cad-diffusion/HANDOFF.md` is the detailed cold-start guide for the

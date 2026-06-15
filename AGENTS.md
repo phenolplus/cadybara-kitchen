@@ -20,6 +20,8 @@ means the local lab control plane unless a task explicitly says hosted
 - `projects/codex-direct-testing/` is an active benchmark sandbox for manual
   Codex-in-this-thread CAD baselines. It is not online testing and it is not a
   provider API.
+- `projects/cadgenbench/` is an external CADGenBench submodule. Treat it as a
+  separate upstream project, not Cadybara-owned source.
 - The live M1/M2 harness is Python + Typer + JSONL + CadQuery + a small
   `http.server` lab + vanilla HTML/CSS/JS.
 - Ignore old React/FastAPI/SQLite notes in parked sandbox archives when
@@ -61,6 +63,9 @@ means the local lab control plane unless a task explicitly says hosted
 - `projects/website/` owns the static browser UI and assets, including hosted
   review and CAD/voxel diffusion pages. It can rely on lab APIs, but it should
   not duplicate Python runner logic.
+- `projects/cadgenbench/` is a submodule pointer to
+  `https://github.com/huggingface/cadgenbench.git`. Do not edit it for ordinary
+  Cadybara work; use a separate CADGenBench branch/PR plan for upstream changes.
 - `projects/_parked-not-active/` is preserved history. Do not reactivate,
   delete, or rewrite it unless explicitly asked.
 
@@ -71,6 +76,10 @@ consumer. Do not hard-code hosted API calls directly into the lab server.
 Cross-project edits are allowed when an explicit public contract needs to move,
 but keep them narrow. Update the docs/tests for every project whose contract
 changed, and leave unrelated project internals alone.
+
+CADGenBench integration work should start as an export/adapter design in
+Cadybara docs. Do not claim Cadybara can submit to CADGenBench until an actual
+exporter and tests exist.
 
 ## Research Principles
 
@@ -121,6 +130,7 @@ changed, and leave unrelated project internals alone.
 - Result snapshots for sharing: `results/<experiment_id>/<timestamp_machine>/`
 - Current hosted smoke snapshot:
   `results/cadybara_online_smoke_reps2/20260606_163617_windows/`
+- CADGenBench integration note: `docs/CADGENBENCH_INTEGRATION.md`
 
 ## Verification
 
