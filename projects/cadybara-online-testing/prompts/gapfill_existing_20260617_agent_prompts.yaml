@@ -1,0 +1,49 @@
+- id: hook_10_full
+  specificity_level: 10
+  text: |
+    Design a single-piece 3D-printable wall-mounted cable or headphone hook.
+    The back plate is a flat vertical rounded rectangle, 90 mm tall x 38 mm wide
+    x 6 mm thick, with 5 mm corner radii and 2 mm edge fillets. Add two 5 mm
+    diameter countersunk screw holes centered horizontally on the plate, spaced
+    55 mm apart vertically, with shallow 10 mm diameter recesses around each
+    hole. A strong curved hook projects forward from the lower half of the
+    plate, extends 55 mm from the wall, and curves upward at the end to prevent
+    items from sliding off. The hook should be 14 mm thick, smoothly blended
+    into the back plate with rounded fillets, and include a triangular support
+    rib under the hook. The back face must remain flat so it mounts flush
+    against a wall, and the whole model should be one watertight printable
+    solid.
+
+- id: hook_07_dimensions
+  specificity_level: 7
+  text: |
+    Design a 3D-printable wall-mounted cable or headphone hook with a 90 mm tall
+    x 38 mm wide x 6 mm thick flat back plate. Add two 5 mm diameter circular
+    screw holes centered on the plate, spaced 55 mm apart vertically. The hook
+    should project 55 mm forward from the plate, curve upward at the tip, and
+    be about 14 mm thick with rounded edges and fillets for strength.
+
+- id: snowman_05_printable
+  specificity_level: 5
+  text: |
+    Design a single-piece 3D-printable curved snowman figurine made from three
+    rounded-square blocks stacked vertically from largest to smallest. The body
+    should have softened corners, a smooth forward-curving pose, a flat bottom
+    for standing, and three recessed circular button holes on each side of the
+    snowman.
+
+- id: snowman_07_dimensions
+  specificity_level: 7
+  text: |
+    Design a 3D-printable curved snowman figurine, 120 mm tall, made from three
+    rounded-square body blocks stacked vertically: a 65 mm wide bottom block, a
+    52 mm wide middle block, and a 40 mm wide top block. The stack should curve
+    forward smoothly from bottom to top. Each block should have rounded corners
+    and soft filleted edges. Add three 5 mm circular button holes recessed into
+    the left side and three matching holes recessed into the right side.
+
+- id: planter_03_mounting
+  specificity_level: 3
+  text: |
+    Design a wall-mounted planter that holds a small potted plant and can be
+    hung on a nail or screw in drywall.

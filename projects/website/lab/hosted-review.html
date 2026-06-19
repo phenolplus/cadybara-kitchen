@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Cadybara Hosted Review</title>
-    <link rel="stylesheet" href="./hosted-review.css?v=4" />
+    <link rel="stylesheet" href="./hosted-review.css?v=5" />
   </head>
   <body>
     <header class="topbar">
@@ -46,6 +46,7 @@
           <div class="segmented compact">
             <button type="button" class="active" data-mode="browse">Browse</button>
             <button type="button" data-mode="blind">Blind</button>
+            <button type="button" data-mode="battle">Battle</button>
           </div>
           <button type="button" class="ghost-button" id="refresh">Refresh</button>
         </div>
@@ -136,8 +137,49 @@
           <div class="ledger-list" id="blind-ledger"></div>
         </aside>
       </section>
+
+      <section class="battle-view is-hidden" id="battle-view" aria-label="Pairwise battle judging">
+        <div class="battle-stage">
+          <article class="battle-card" id="battle-left-card">
+            <div class="battle-viewer">
+              <iframe id="battle-left-viewer" title="Left battle STL viewer"></iframe>
+              <div class="empty-viewer" id="battle-left-empty">No left model</div>
+            </div>
+            <div class="battle-secret" id="battle-left-secret">Hidden model A</div>
+          </article>
+
+          <article class="battle-card" id="battle-right-card">
+            <div class="battle-viewer">
+              <iframe id="battle-right-viewer" title="Right battle STL viewer"></iframe>
+              <div class="empty-viewer" id="battle-right-empty">No right model</div>
+            </div>
+            <div class="battle-secret" id="battle-right-secret">Hidden model B</div>
+          </article>
+        </div>
+
+        <aside class="battle-panel">
+          <div>
+            <p class="eyebrow" id="battle-progress">Battle queue</p>
+            <h2>Overall quality battle</h2>
+            <p class="blind-note">
+              Pick the better saved model. Labels stay hidden until after the vote.
+            </p>
+          </div>
+          <div class="battle-actions">
+            <button type="button" class="ghost-button" id="battle-left-win">Left wins</button>
+            <button type="button" class="ghost-button" id="battle-tie">Tie</button>
+            <button type="button" class="ghost-button" id="battle-right-win">Right wins</button>
+            <button type="button" class="ghost-button" id="battle-skip">Skip</button>
+          </div>
+          <div class="blind-reveal is-hidden" id="battle-reveal"></div>
+          <div class="battle-rankings">
+            <h3>Rankings</h3>
+            <div class="ledger-list" id="battle-rankings"></div>
+          </div>
+        </aside>
+      </section>
     </main>
 
-    <script type="module" src="./hosted-review.js?v=4"></script>
+    <script type="module" src="./hosted-review.js?v=5"></script>
   </body>
 </html>

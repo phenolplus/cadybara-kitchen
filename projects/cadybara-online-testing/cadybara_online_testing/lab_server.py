@@ -41,6 +41,7 @@ from cadybara_cad_diffusion import (
     train_voxel_diffusion_model,
     validate_cad_token_grammar,
 )
+from cadybara_online_testing.battles import append_battle, battle_candidates, battle_summary, load_battles
 from cadybara_online_testing.progress import record_has_viewable_stl, run_status_payload
 from cadybara_online_testing.reviews import append_score, review_items, review_path
 
@@ -1226,6 +1227,26 @@ def review_payload(config: ExperimentConfig) -> dict[str, Any]:
     return review_items(Path(config.output_path), experiment_id=config.experiment_id)
 
 
+def battle_payload(config_paths: list[Path], configs: list[ExperimentConfig]) -> dict[str, Any]:
+    candidates = battle_candidates(config_paths, configs)
+    return {
+        "candidates": candidates,
+        "summary": battle_summary(candidates),
+        "battle_count": len(load_battles()),
+    }
+
+
+def review_config_paths_from_query(query: dict[str, list[str]]) -> list[Path]:
+    paths: list[str] = []
+    configs = query.get("configs", [])
+    for value in configs:
+        paths.extend(part.strip() for part in value.split(",") if part.strip())
+    if not paths:
+        paths.extend(query.get("config") or [DEFAULT_PROJECT_CONFIG])
+        paths.extend(query.get("extra_config") or [])
+    return [Path(path) for path in dict.fromkeys(paths)]
+
+
 def make_handler(state: LabState):
     root = state.root
 
@@ -1311,6 +1332,12 @@ def make_handler(state: LabState):
                 config_path = Path(query.get("config", [DEFAULT_PROJECT_CONFIG])[0])
                 self._json(review_payload(state.display_config(config_path)))
                 return
+            if parsed.path == "/api/review/battles":
+                query = parse_qs(parsed.query)
+                config_paths = review_config_paths_from_query(query)
+                configs = [state.display_config(path) for path in config_paths]
+                self._json(battle_payload(config_paths, configs))
+                return
             return super().do_GET()
 
         def do_POST(self) -> None:
@@ -1380,6 +1407,19 @@ def make_handler(state: LabState):
                     score=int(payload["score"]),
                 )
                 self._json({"saved": saved})
+                return
+            if self.path == "/api/review/battle":
+                saved = append_battle(
+                    left_run_id=str(payload["left_run_id"]),
+                    right_run_id=str(payload["right_run_id"]),
+                    outcome=payload["outcome"],
+                    criterion=str(payload.get("criterion") or "overall_quality"),
+                    config_paths=payload.get("config_paths") or [],
+                )
+                config_paths = [Path(value) for value in payload.get("config_paths") or [DEFAULT_PROJECT_CONFIG]]
+                configs = [state.display_config(path) for path in config_paths]
+                candidates = battle_candidates(config_paths, configs)
+                self._json({"saved": saved, "summary": battle_summary(candidates)})
                 return
             self._json({"error": "not found"}, status=404)
 

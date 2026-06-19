@@ -13,6 +13,7 @@ const dom = {
   grid: document.querySelector("#result-grid"),
   browseView: document.querySelector("#browse-view"),
   blindView: document.querySelector("#blind-view"),
+  battleView: document.querySelector("#battle-view"),
   refresh: document.querySelector("#refresh"),
   filterButtons: [...document.querySelectorAll("[data-filter]")],
   modeButtons: [...document.querySelectorAll("[data-mode]")],
@@ -40,6 +41,19 @@ const dom = {
   blindNext: document.querySelector("#blind-next"),
   blindShuffle: document.querySelector("#blind-shuffle"),
   blindLedger: document.querySelector("#blind-ledger"),
+  battleProgress: document.querySelector("#battle-progress"),
+  battleLeftViewer: document.querySelector("#battle-left-viewer"),
+  battleRightViewer: document.querySelector("#battle-right-viewer"),
+  battleLeftEmpty: document.querySelector("#battle-left-empty"),
+  battleRightEmpty: document.querySelector("#battle-right-empty"),
+  battleLeftSecret: document.querySelector("#battle-left-secret"),
+  battleRightSecret: document.querySelector("#battle-right-secret"),
+  battleLeftWin: document.querySelector("#battle-left-win"),
+  battleRightWin: document.querySelector("#battle-right-win"),
+  battleTie: document.querySelector("#battle-tie"),
+  battleSkip: document.querySelector("#battle-skip"),
+  battleReveal: document.querySelector("#battle-reveal"),
+  battleRankings: document.querySelector("#battle-rankings"),
 };
 
 const state = {
@@ -49,11 +63,17 @@ const state = {
   selectedRunId: null,
   loadedViewerRunId: null,
   filter: "all",
-  mode: query.get("mode") === "blind" ? "blind" : "browse",
+  mode: ["blind", "battle"].includes(query.get("mode")) ? query.get("mode") : "browse",
   blindOrder: [],
   blindIndex: 0,
   blindScoredRunId: null,
   blindRevealText: "",
+  battleCandidates: [],
+  battleSummary: null,
+  battlePairs: [],
+  battleIndex: 0,
+  battleRevealText: "",
+  savingBattle: false,
   savingScore: false,
   includeReviewedBlind: query.get("include_reviewed") === "1",
 };
@@ -158,6 +178,7 @@ function sampleLabel(item) {
     cadybara_online_gapfill2_20260613_reps3: "2026-06-13 gap fill",
     cadybara_online_gapfill3_20260614_reps3: "2026-06-14 gap fill",
     cadybara_online_gapfill_solidish_20260615_reps3: "2026-06-15 solid-ish",
+    cadybara_online_gapfill_existing_20260617_reps3: "2026-06-17 existing fill",
   };
   const experiment = labels[item.experiment_id] || item.experiment_id || "run";
   return `${shortPromptId(item.seed_id)} (${experiment}, rep ${Number(item.repetition) + 1})`;
@@ -395,6 +416,111 @@ function currentBlindItem() {
   return state.items.find((item) => item.run_id === runId) || null;
 }
 
+function familyForItem(item) {
+  return item?.family || String(item?.seed_id || "unknown").split("_")[0] || "unknown";
+}
+
+function syncBattlePairs({ force = false } = {}) {
+  const candidates = state.battleCandidates.filter((item) => item.is_renderable);
+  const signature = candidates.map((item) => item.run_id).sort().join("|");
+  if (!force && state.battleSignature === signature && state.battlePairs.length) return;
+  const crossFamily = [];
+  const sameFamily = [];
+  for (let leftIndex = 0; leftIndex < candidates.length; leftIndex += 1) {
+    for (let rightIndex = leftIndex + 1; rightIndex < candidates.length; rightIndex += 1) {
+      const pair = [candidates[leftIndex].run_id, candidates[rightIndex].run_id];
+      if (familyForItem(candidates[leftIndex]) !== familyForItem(candidates[rightIndex])) {
+        crossFamily.push(pair);
+      } else {
+        sameFamily.push(pair);
+      }
+    }
+  }
+  state.battlePairs = shuffle([...shuffle(crossFamily), ...shuffle(sameFamily)]);
+  state.battleIndex = 0;
+  state.battleRevealText = "";
+  state.battleSignature = signature;
+}
+
+function currentBattlePair() {
+  const pair = state.battlePairs[state.battleIndex];
+  if (!pair) return [null, null];
+  const left = state.battleCandidates.find((item) => item.run_id === pair[0]) || null;
+  const right = state.battleCandidates.find((item) => item.run_id === pair[1]) || null;
+  return [left, right];
+}
+
+function revealBattleLabel(item) {
+  const score = item?.review?.score ? ` | score ${item.review.score}/10` : "";
+  const rating = state.battleSummary?.items?.find((row) => row.run_id === item?.run_id);
+  const elo = rating ? ` | Elo ${rating.rating}` : "";
+  return `${sampleLabel(item)}${score}${elo}`;
+}
+
+function renderBattleViewer(item, iframe, empty, secret) {
+  const wrap = iframe.closest(".battle-viewer");
+  const viewerUrl = viewerUrlFor(item);
+  if (item && viewerUrl) {
+    wrap.classList.add("has-viewer");
+    if (iframe.getAttribute("src") !== viewerUrl) iframe.src = viewerUrl;
+    empty.textContent = "";
+  } else {
+    wrap.classList.remove("has-viewer");
+    iframe.removeAttribute("src");
+    empty.textContent = "No model";
+  }
+  secret.textContent = state.battleRevealText && item ? revealBattleLabel(item) : "Hidden model";
+}
+
+function renderBattleRankings() {
+  const rows = state.battleSummary?.items || [];
+  if (!rows.length) {
+    dom.battleRankings.textContent = "No rankings yet.";
+    return;
+  }
+  dom.battleRankings.replaceChildren(...rows.slice(0, 12).map((item, index) => {
+    const row = document.createElement("div");
+    row.className = "ledger-item";
+    const title = document.createElement("strong");
+    title.textContent = `${index + 1}. ${item.rating} Elo -> ${item.label}`;
+    const detail = document.createElement("span");
+    const scoreText = item.score ? `seed score ${item.score}/10` : "no seed score";
+    detail.textContent = `${item.family}; ${item.battle_count} battles; ${scoreText}`;
+    row.append(title, detail);
+    return row;
+  }));
+}
+
+function renderBattle() {
+  syncBattlePairs();
+  const [left, right] = currentBattlePair();
+  const total = state.battlePairs.length;
+  dom.battleProgress.textContent = total
+    ? `Battle ${state.battleIndex + 1} of ${total} | ${state.battleSummary?.battle_count || 0} saved votes`
+    : "Battle queue";
+  renderBattleViewer(left, dom.battleLeftViewer, dom.battleLeftEmpty, dom.battleLeftSecret);
+  renderBattleViewer(right, dom.battleRightViewer, dom.battleRightEmpty, dom.battleRightSecret);
+  const disabled = state.savingBattle || !left || !right;
+  [dom.battleLeftWin, dom.battleRightWin, dom.battleTie, dom.battleSkip].forEach((button) => {
+    button.disabled = disabled && button !== dom.battleSkip;
+  });
+  if (state.battleRevealText) {
+    dom.battleReveal.textContent = state.battleRevealText;
+    dom.battleReveal.classList.remove("is-hidden");
+  } else {
+    dom.battleReveal.textContent = "";
+    dom.battleReveal.classList.add("is-hidden");
+  }
+  renderBattleRankings();
+}
+
+function advanceBattle() {
+  if (!state.battlePairs.length) return;
+  state.battleIndex = (state.battleIndex + 1) % state.battlePairs.length;
+  state.battleRevealText = "";
+  renderBattle();
+}
+
 function renderBlindLedger() {
   const scored = state.items
     .filter((item) => item.review)
@@ -508,6 +634,31 @@ async function saveBlindScore(score) {
   renderBlind();
 }
 
+async function saveBattle(outcome) {
+  if (state.savingBattle) return;
+  const [left, right] = currentBattlePair();
+  if (!left || !right) return;
+  state.savingBattle = true;
+  renderBattle();
+  try {
+    const response = await postJson("/api/review/battle", {
+      left_run_id: left.run_id,
+      right_run_id: right.run_id,
+      outcome,
+      criterion: "overall_quality",
+      config_paths: configPaths,
+    });
+    state.battleSummary = response.summary;
+    const winnerText = outcome === "tie"
+      ? "You marked this battle as a tie."
+      : `You picked ${outcome === "left" ? "left" : "right"} as better overall.`;
+    state.battleRevealText = `${winnerText} Left: ${revealBattleLabel(left)}. Right: ${revealBattleLabel(right)}.`;
+  } finally {
+    state.savingBattle = false;
+    renderBattle();
+  }
+}
+
 function setMode(mode) {
   state.mode = mode;
   dom.modeButtons.forEach((button) => {
@@ -515,7 +666,9 @@ function setMode(mode) {
   });
   dom.browseView.classList.toggle("is-hidden", mode !== "browse");
   dom.blindView.classList.toggle("is-hidden", mode !== "blind");
+  dom.battleView.classList.toggle("is-hidden", mode !== "battle");
   if (mode === "blind") renderBlind();
+  if (mode === "battle") renderBattle();
 }
 
 async function refresh() {
@@ -528,6 +681,10 @@ async function refresh() {
   state.reviews = reviews;
   state.rawItems = reviews.flatMap((review) => review.items || []);
   state.items = latestCellItems(state.rawItems);
+  const battlePayload = await getJson("/api/review/battles", { configs: configPaths.join(",") });
+  state.battleCandidates = battlePayload.candidates || [];
+  state.battleSummary = battlePayload.summary || null;
+  syncBattlePairs({ force: true });
   if (!state.items.some((item) => item.run_id === state.selectedRunId) && state.items.length) {
     state.selectedRunId = state.items.find((item) => item.is_renderable)?.run_id || state.items[0].run_id;
   }
@@ -537,6 +694,7 @@ async function refresh() {
   renderGrid();
   renderDetail();
   renderBlind();
+  renderBattle();
   setMode(state.mode);
 }
 
@@ -580,6 +738,31 @@ dom.blindNext.addEventListener("click", () => {
 dom.blindShuffle.addEventListener("click", () => {
   syncBlindOrder({ force: true });
   renderBlind();
+});
+
+dom.battleLeftWin.addEventListener("click", () => {
+  saveBattle("left").catch((error) => {
+    state.battleRevealText = error.message;
+    renderBattle();
+  });
+});
+
+dom.battleRightWin.addEventListener("click", () => {
+  saveBattle("right").catch((error) => {
+    state.battleRevealText = error.message;
+    renderBattle();
+  });
+});
+
+dom.battleTie.addEventListener("click", () => {
+  saveBattle("tie").catch((error) => {
+    state.battleRevealText = error.message;
+    renderBattle();
+  });
+});
+
+dom.battleSkip.addEventListener("click", () => {
+  advanceBattle();
 });
 
 refresh().catch((error) => {
